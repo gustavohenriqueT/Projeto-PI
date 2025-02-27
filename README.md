@@ -6,9 +6,9 @@
 
 | Geovana Neuberger Sorg | 22001825 | | Membro da equipe |
 | Fernando Pagliarini Furlanetto | 22000293 | Membro da equipe |  
-| Gustavo Henrique Tomaz da Silva | 22001161 | Scrum Master (SM) |  
-| Lucas de Oliveira Barreiro | 22000100 | Membro da equipe |  
-| Kayque Silva Zanelli | 24001664 | Product Owner (PO) |  
+| Gustavo Henrique Tomaz da Silva | 22001161 | Product Owner (PO) |  
+| Lucas de Oliveira Barreiro | 22000100 | Scrum Master (SM) |  
+| Kayque Silva Zanelli | 24001664 | Membro da equipe |  
 | Diogo Alves Daloca | - | Membro da equipe |  
 
 ## **Descrição do Projeto**  
@@ -36,13 +36,13 @@ Utilizando **Python**, **R** e **MongoDB**, processaremos dados de GPS dos ônib
 
 ## **Funções e Responsabilidades**  
 
-- **Scrum Master (SM) - Gustavo Henrique Tomaz da Silva**  
+- **Scrum Master (SM) - Lucas de Oliveira Barreiro**  
   - Líder e facilitador do grupo  
   - Atribuição de papéis e responsabilidades  
   - Definição de datas para reuniões internas  
   - Manutenção do repositório GitHub junto com o PO  
 
-- **Product Owner (PO) - Lucas de Oliveira Barreiro**  
+- **Product Owner (PO) - Gustavo Henrique Tomaz da Silva**  
   - Criação e manutenção do cronograma de entregas (Trello, Jira, Notion, GitHub Projects)  
   - Acompanhamento do progresso do time  
   - Manutenção do repositório GitHub junto com o SM  
