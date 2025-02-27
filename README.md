@@ -5,11 +5,16 @@
 | Nome Completo | RA | Função |  
 
 | Geovana Neuberger Sorg | 22001825 | | Membro da equipe |
+
 | Fernando Pagliarini Furlanetto | 22000293 | Membro da equipe |  
-| Gustavo Henrique Tomaz da Silva | 22001161 | Product Owner (PO) |  
+
+| Gustavo Henrique Tomaz da Silva | 22001161 | Product Owner (PO) | 
+
 | Lucas de Oliveira Barreiro | 22000100 | Scrum Master (SM) |  
+
 | Kayque Silva Zanelli | 24001664 | Membro da equipe |  
-| Diogo Alves Daloca | - | Membro da equipe |  
+
+| Diogo Alves Daloca | 24001784 | Membro da equipe |  
 
 ## **Descrição do Projeto**  
 
