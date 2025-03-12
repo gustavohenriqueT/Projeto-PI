@@ -9,5 +9,21 @@ Vagrant.configure("2") do |config|
         vb.cpus = 1
       end
       web.vm.synced_folder "./app", "home/vagrant/app"
-    end  
+      web.vm.provision "shell", inline: <<-SHELL
+        echo "atualizando pacotes..."
+        sudo apt -y
+        echo "instalando dependencias..."
+        sudo apt install -y curl
+        echo "instalando node..."
+        curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
+        \. "$HOME/.nvm/nvm.sh"
+        vm install 22
+        echo "verificar instalação..."
+        mode -v
+        npm -v
+      SHELL
+    end
+  #VM2 - Servidor Banco de Dados Mysql com Firewall
+    #config.vm.define 'db' do |db|
   end
+
