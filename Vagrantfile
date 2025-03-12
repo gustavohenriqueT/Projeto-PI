@@ -8,7 +8,7 @@ Vagrant.configure("2") do |config|
         vb.memory = "1024"
         vb.cpus = 1
       end
-      web.vm.synced_folder "./app", "home/vagrant/app"
+      web.vm.synced_folder "./app", "/home/vagrant/app"
       web.vm.provision "shell", inline: <<-SHELL
         echo "atualizando pacotes..."
         sudo apt -y
@@ -19,7 +19,7 @@ Vagrant.configure("2") do |config|
         \. "$HOME/.nvm/nvm.sh"
         vm install 22
         echo "verificar instalação..."
-        mode -v
+        node -v
         npm -v
       SHELL
     end
