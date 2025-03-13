@@ -58,7 +58,8 @@ Utilizando **Python**, **R** e **MongoDB**, processaremos dados de GPS dos ônib
 
 - **Ferramentas de Big Data:**  
   - Pandas  
-  - Apache Spark (opcional)  
+  - Apache Spark
+  - Flask 
 
 - **Visualização de Dados:**  
   - Matplotlib  
