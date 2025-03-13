@@ -9,7 +9,7 @@
 | Gustavo Henrique Tomaz da Silva | 22001161 | Product Owner (PO)|  
 | Lucas de Oliveira Barreiro | 22000100 | Scrum Master (SM)  |  
 | Kayque Silva Zanelli | 24001664 | Membro da equipe |  
-| Diogo Alves Daloca | - | Membro da equipe |  
+| Diogo Alves Daloca | 24001874 | Membro da equipe |  
 
 ## **Descrição do Projeto**  
 
