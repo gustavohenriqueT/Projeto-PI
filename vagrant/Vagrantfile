@@ -1,0 +1,32 @@
+# vagrant/Vagrantfile
+Vagrant.configure("2") do |config|
+  # VM Web - Análise
+  config.vm.define "web" do |web|
+    web.vm.box = "ubuntu/jammy64"
+    web.vm.network "private_network", ip: "192.168.60.10"
+    web.vm.provision "ansible" do |ansible|
+      ansible.playbook = "../ansible/playbook.yml"
+      ansible.extra_vars = { role: "web" }
+    end
+  end
+
+  # VM Banco - PostgreSQL
+  config.vm.define "banco" do |banco|
+    banco.vm.box = "ubuntu/jammy64"
+    banco.vm.network "private_network", ip: "192.168.60.20"
+    banco.vm.provision "ansible" do |ansible|
+      ansible.playbook = "../ansible/playbook.yml"
+      ansible.extra_vars = { role: "banco" }
+    end
+  end
+
+  # VM Dataset - Dados
+  config.vm.define "dataset" do |dataset|
+    dataset.vm.box = "ubuntu/jammy64"
+    dataset.vm.network "private_network", ip: "192.168.60.30"
+    dataset.vm.provision "ansible" do |ansible|
+      ansible.playbook = "../ansible/playbook.yml"
+      ansible.extra_vars = { role: "dataset" }
+    end
+  end
+end
