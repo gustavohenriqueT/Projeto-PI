@@ -1,0 +1,21 @@
+# ansible/playbook.yml
+- hosts: all
+  become: yes
+  tasks:
+    - name: Atualizar cache apt
+      apt:
+        update_cache: yes
+
+    - name: Instalar dependências básicas
+      apt:
+        name: ["apt-transport-https", "ca-certificates", "curl", "software-properties-common"]
+        state: present
+
+- import_playbook: roles/web/tasks/main.yml
+  when: role == 'web'
+
+- import_playbook: roles/banco/tasks/main.yml
+  when: role == 'banco'
+
+- import_playbook: roles/dataset/tasks/main.yml
+  when: role == 'dataset'

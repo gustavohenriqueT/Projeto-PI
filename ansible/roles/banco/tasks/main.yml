@@ -1,0 +1,13 @@
+- name: Instalar Docker
+  include_tasks: ../common/install_docker.yml
+
+- name: Copiar configuração do PostgreSQL
+  copy:
+    src: "../../../docker/banco/"
+    dest: "/home/vagrant/banco"
+
+- name: Iniciar container do banco
+  community.docker.docker_compose:
+    project_src: "/home/vagrant/banco"
+    build: yes
+    restart_policy: always

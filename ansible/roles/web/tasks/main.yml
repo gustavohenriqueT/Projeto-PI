@@ -1,0 +1,13 @@
+- name: Instalar Docker
+  include_tasks: ../common/install_docker.yml
+
+- name: Copiar aplicação web
+  copy:
+    src: "../../../docker/web/"
+    dest: "/home/vagrant/web"
+
+- name: Construir e executar container
+  community.docker.docker_compose:
+    project_src: "/home/vagrant/web"
+    build: yes
+    restart_policy: always
