@@ -1,0 +1,24 @@
+# ansible/common/install_docker.yml
+
+- name: Adicionar chave GPG do Docker
+  ansible.builtin.apt_key:
+    url: https://download.docker.com/linux/ubuntu/gpg
+    state: present
+
+- name: Adicionar repositório do Docker
+  ansible.builtin.apt_repository:
+    repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+    state: present
+
+- name: Atualizar cache do apt
+  ansible.builtin.apt:
+    update_cache: yes
+
+- name: Instalar Docker e Compose plugin
+  ansible.builtin.apt:
+    name:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker-compose-plugin
+    state: present
