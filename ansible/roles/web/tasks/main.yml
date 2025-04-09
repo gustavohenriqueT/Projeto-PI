@@ -1,13 +1,29 @@
-- name: Instalar Docker
-  include_tasks: ../common/install_docker.yml
+# ansible/roles/web/tasks/main.yml
+
+- name: Incluir instalação do Docker
+  ansible.builtin.include_tasks: "../../common/install_docker.yml"
+
+- name: Garantir que o serviço do Docker está rodando
+  ansible.builtin.service:
+    name: docker
+    state: started
+    enabled: yes
+
+- name: Adicionar usuário vagrant ao grupo docker
+  ansible.builtin.user:
+    name: vagrant
+    groups: docker
+    append: yes
 
 - name: Copiar aplicação web
-  copy:
+  ansible.builtin.copy:
     src: "../../../docker/web/"
     dest: "/home/vagrant/web"
+    owner: vagrant
+    group: vagrant
+    mode: '0755'
 
-- name: Construir e executar container
-  community.docker.docker_compose:
+- name: Subir containers com Docker Compose
+  community.docker.docker_compose_v2:
     project_src: "/home/vagrant/web"
-    build: yes
-    restart_policy: always
+    build: true

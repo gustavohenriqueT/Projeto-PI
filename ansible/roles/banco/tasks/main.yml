@@ -7,7 +7,9 @@
     dest: "/home/vagrant/banco"
 
 - name: Iniciar container do banco
-  community.docker.docker_compose:
+  become: yes
+  community.docker.docker_compose_v2:
     project_src: "/home/vagrant/banco"
-    build: yes
-    restart_policy: always
+    build: true
+    remove_orphans: true
+    recreate: always

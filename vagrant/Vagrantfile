@@ -1,9 +1,10 @@
-# vagrant/Vagrantfile
 Vagrant.configure("2") do |config|
   # VM Web - Análise
   config.vm.define "web" do |web|
     web.vm.box = "ubuntu/jammy64"
     web.vm.network "private_network", ip: "192.168.60.10"
+    
+    # Provisionamento Ansible
     web.vm.provision "ansible" do |ansible|
       ansible.playbook = "../ansible/playbook.yml"
       ansible.extra_vars = { role: "web" }
@@ -14,6 +15,17 @@ Vagrant.configure("2") do |config|
   config.vm.define "banco" do |banco|
     banco.vm.box = "ubuntu/jammy64"
     banco.vm.network "private_network", ip: "192.168.60.20"
+    
+    # Provisionamento Shell
+    banco.vm.provision "shell", inline: <<-SHELL
+      sudo apt-get update
+      sudo apt-get install -y docker.io
+      sudo systemctl start docker
+      sudo systemctl enable docker
+      sudo usermod -aG docker vagrant
+    SHELL
+
+    # Provisionamento Ansible
     banco.vm.provision "ansible" do |ansible|
       ansible.playbook = "../ansible/playbook.yml"
       ansible.extra_vars = { role: "banco" }
@@ -24,6 +36,17 @@ Vagrant.configure("2") do |config|
   config.vm.define "dataset" do |dataset|
     dataset.vm.box = "ubuntu/jammy64"
     dataset.vm.network "private_network", ip: "192.168.60.30"
+    
+    # Provisionamento Shell
+    dataset.vm.provision "shell", inline: <<-SHELL
+      sudo apt-get update
+      sudo apt-get install -y docker.io
+      sudo systemctl start docker
+      sudo systemctl enable docker
+      sudo usermod -aG docker vagrant
+    SHELL
+
+    # Provisionamento Ansible
     dataset.vm.provision "ansible" do |ansible|
       ansible.playbook = "../ansible/playbook.yml"
       ansible.extra_vars = { role: "dataset" }
