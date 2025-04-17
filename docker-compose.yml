@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  web:
+    build: ./web
+    ports:
+      - "5000:5000"
+    depends_on:
+      banco:
+        condition: service_healthy
+      dataset:
+        condition: service_started
+    environment:
+      - DB_HOST=banco
+      - DB_PASSWORD=senha_segura
+      - DATASET_URL=http://dataset/dataset.csv
+      - DB_STARTUP_WAIT=10  # Segundos para esperar
+
+  banco:
+    image: postgres:14
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: senha_segura
+      POSTGRES_DB: transporte
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./banco/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d transporte"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  dataset:
+    build: ./dataset
+    ports:
+      - "80:80"
+
+volumes:
+  pgdata:
