@@ -15,12 +15,12 @@ def wait_for_db(max_retries=5, wait_seconds=5):
                 database="transporte"
             )
             conn.close()
-            print("✅ Banco de dados pronto!")
+            print("Banco de dados pronto!")
             return True
         except psycopg2.OperationalError as e:
             print(f"⚠️ Tentativa {i+1}/{max_retries} - Banco não está pronto...")
             time.sleep(wait_seconds)
-    raise Exception("❌ Não foi possível conectar ao banco após várias tentativas")
+    raise Exception("Não foi possível conectar ao banco após várias tentativas")
 
 def main():
     # 1. Carregar dataset
