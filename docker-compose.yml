@@ -14,7 +14,7 @@ services:
       - DB_HOST=banco
       - DB_PASSWORD=senha_segura
       - DATASET_URL=http://dataset/dataset.csv
-      - DB_STARTUP_WAIT=10  # Segundos para esperar
+    restart: on-failure
 
   banco:
     image: postgres:14
@@ -31,12 +31,14 @@ services:
       test: ["CMD-SHELL", "pg_isready -U admin -d transporte"]
       interval: 5s
       timeout: 5s
-      retries: 10
+      retries: 15
 
   dataset:
     build: ./dataset
     ports:
-      - "80:80"
+      - "8080:80"
+    volumes:
+      - ./dataset/dados:/app/dados
 
 volumes:
   pgdata:
