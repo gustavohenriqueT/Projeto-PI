@@ -28,24 +28,30 @@ def wait_for_db():
 def main():
     print("\n=== INICIANDO PROCESSAMENTO ===")
     
-    # 1. Carregar dataset
+    # 1. Carregar dataset - CAMINHO CORRIGIDO
     print(f"{datetime.now()} - Carregando dataset...")
-    df = pd.read_csv(os.getenv("DATASET_URL"))
+    df = pd.read_csv("/app/dados/dataset.csv")  # Caminho absoluto no container
     
     # 2. Processar dados
     print(f"{datetime.now()} - Filtrando dados válidos...")
     df = df[df['Dado_Correto'] == True].drop(columns=['Dado_Correto'])
     
-    # 3. Esperar banco
-    wait_for_db()
-    
-    # 4. Salvar no PostgreSQL
+    # 3. Salvar no PostgreSQL
     print(f"{datetime.now()} - Conectando ao banco...")
     engine = create_engine(
         f"postgresql://admin:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_HOST')}/transporte"
     )
     
     print(f"{datetime.now()} - Salvando dados...")
+
+    df = df.rename(columns={
+    'Data_Hora': 'data_hora',
+    'ID_Veiculo': 'id_veiculo',
+    'Numero_Passageiros': 'passageiros',
+    'Tempo_Viagem_Minutos': 'tempo_viagem',
+    'Situacao': 'situacao'
+    })
+    
     df.to_sql('dados_transporte', engine, if_exists='replace', index=False)
     print(f"{datetime.now()} - ✅ Dados salvos com sucesso!")
 
