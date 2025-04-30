@@ -62,7 +62,7 @@ Utilizando Python, R, MongoDB, Ansible e Docker, processaremos dados de GPS dos 
 - Flask
 
 ### Ferramentas de Gerenciamento e Automatização:
-- Ansible
+- Jekins
 - Docker
 
 ### Visualização de Dados:
