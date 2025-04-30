@@ -8,13 +8,13 @@ services:
     depends_on:
       banco:
         condition: service_healthy
-      dataset:
-        condition: service_started
     environment:
       - DB_HOST=banco
       - DB_PASSWORD=senha_segura
-      - DATASET_URL=http://dataset/dataset.csv
-    restart: on-failure
+    restart: unless-stopped
+    volumes:
+      - ./web:/app
+      - ./dados:/app/dados  # Adicionado para acesso aos dados
 
   banco:
     image: postgres:14
@@ -35,10 +35,11 @@ services:
 
   dataset:
     build: ./dataset
-    ports:
-      - "8080:80"
+    user: "${UID}:${GID}"
     volumes:
-      - ./dataset/dados:/app/dados
+      - ./dados:/app/dados
+    command: python generate_dataset.py
+    restart: "no"
 
 volumes:
   pgdata:
