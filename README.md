@@ -54,7 +54,7 @@ Utilizando Python, R, MongoDB, Ansible e Docker, processaremos dados de GPS dos 
 - R
 
 ### Banco de Dados:
-- MongoDB
+- PostgreSQL
 
 ### Ferramentas de Big Data:
 - Pandas
