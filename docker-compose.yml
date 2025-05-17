@@ -1,45 +1,61 @@
 version: '3.8'
 
 services:
-  web:
-    build: ./web
+  jenkins:
+    build: ./jenkins
+    ports:
+      - "18080:8080"
+      - "50000:50000"
+    volumes:
+      - jenkins_data:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  data-generator:
+    build: ./data-generator
+    volumes:
+      - ./data:/data
+
+  spark-master:
+    image: bitnami/spark:3.4
+    ports:
+      - "8080:8080"
+      - "7077:7077"
+    volumes:
+      - ./spark-processing:/app
+      - ./data:/data
+    environment:
+      SPARK_MODE: master
+
+  spark-worker:
+    image: bitnami/spark:3.4
+    depends_on:
+      - spark-master
+    environment:
+      SPARK_MODE: worker
+      SPARK_MASTER_URL: "spark://spark-master:7077"
+    volumes:
+      - ./spark-processing:/app
+      - ./data:/data
+
+  postgres:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: transport_db
+    volumes:
+      - ./data-warehouse/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  web-dashboard:
+    build: ./web-dashboard
     ports:
       - "5000:5000"
     depends_on:
-      banco:
-        condition: service_healthy
-    environment:
-      - DB_HOST=banco
-      - DB_PASSWORD=senha_segura
-    restart: unless-stopped
-    volumes:
-      - ./web:/app
-      - ./dados:/app/dados  # Adicionado para acesso aos dados
-
-  banco:
-    image: postgres:14
-    environment:
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: senha_segura
-      POSTGRES_DB: transporte
-    ports:
-      - "5432:5432"
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-      - ./banco/init.sql:/docker-entrypoint-initdb.d/init.sql
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U admin -d transporte"]
-      interval: 5s
-      timeout: 5s
-      retries: 15
-
-  dataset:
-    build: ./dataset
-    user: "${UID}:${GID}"
-    volumes:
-      - ./dados:/app/dados
-    command: python generate_dataset.py
-    restart: "no"
+      - postgres
 
 volumes:
-  pgdata:
+  jenkins_data:
+  postgres_data:
