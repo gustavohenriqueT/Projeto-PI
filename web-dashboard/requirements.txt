@@ -1,0 +1,6 @@
+dash==2.11.1
+plotly==5.15.0
+pandas==1.5.3
+numpy==1.23.5  # Adicionado para compatibilidade com pandas
+psycopg2-binary==2.9.6
+gunicorn==20.1.0
