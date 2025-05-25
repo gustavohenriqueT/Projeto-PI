@@ -4,6 +4,7 @@ import re
 import nltk
 import matplotlib.pyplot as plt
 import seaborn as sns
+import os # Adicionado para lidar com o download de NLTK
 
 from nltk.corpus import stopwords
 from nltk.stem import RSLPStemmer
@@ -22,14 +23,33 @@ from sklearn.metrics import (
     classification_report
 )
 
+# Definir o diretório de dados NLTK dentro do container
+nltk.data.path.append("/app/nltk_data")
+os.makedirs("/app/nltk_data", exist_ok=True)
+
+
 # --- Carregar dataset ---
-df = pd.read_csv('/app/data/transport_dataL.csv')
+# O CSV processado pelo R está em /data/transport_dataL.csv
+csv_path = '/data/transport_dataL.csv'
+if not os.path.exists(csv_path):
+    print(f"Erro: O arquivo {csv_path} não foi encontrado. Verifique o processamento R.")
+    exit(1)
+df = pd.read_csv(csv_path)
+
 # print(df.head())
 
 # --- Pré-processamento texto ---
 
-nltk.download('stopwords')
-nltk.download('rslp')
+# Baixar os recursos do NLTK se não existirem
+try:
+    nltk.data.find('corpora/stopwords')
+except nltk.downloader.DownloadError:
+    nltk.download('stopwords', download_dir="/app/nltk_data")
+try:
+    nltk.data.find('stemmers/rslp')
+except nltk.downloader.DownloadError:
+    nltk.download('rslp', download_dir="/app/nltk_data")
+
 stop_words = set(stopwords.words('portuguese'))
 stemmer = RSLPStemmer()
 
@@ -45,13 +65,21 @@ def preprocess_text(text):
 
 # --- Criar coluna texto concatenando colunas relevantes ---
 
+# Colunas minúsculas após o processamento em R
 colunas_texto = [
-    'Data_Hora', 'ID_Veiculo', 'Linha', 'Latitude',
-    'Longitude', 'Numero_Passageiros', 'Tempo_Viagem_Minutos', 'Hora'
+    'data_hora', 'id_veiculo', 'linha', 'latitude',
+    'longitude', 'numero_passageiros', 'tempo_viagem_minutos', 'hora'
 ]
 
+# Verificar se as colunas existem antes de concatenar
+for col in colunas_texto:
+    if col not in df.columns:
+        print(f"Erro: Coluna '{col}' não encontrada no DataFrame. Verifique o script R.")
+        print(f"Colunas disponíveis: {df.columns.tolist()}")
+        exit(1)
+
 df['texto'] = df[colunas_texto].astype(str).agg(' '.join, axis=1)
-df['rótulo'] = df['Situacao'].astype(str)
+df['rótulo'] = df['situacao'].astype(str) # 'Situacao' também se torna 'situacao' após R
 
 # Aplicar pré-processamento
 df['texto'] = df['texto'].apply(preprocess_text)
@@ -89,7 +117,7 @@ def embaralhar_coluna(col):
 df_random = pd.DataFrame({
     col: embaralhar_coluna(df[col]) for col in colunas_texto
 })
-df_random['rótulo'] = embaralhar_coluna(df['Situacao'].astype(str))
+df_random['rótulo'] = embaralhar_coluna(df['situacao'].astype(str)) # 'Situacao'
 
 df_random['texto'] = df_random[colunas_texto].astype(str).agg(' '.join, axis=1)
 df_random['texto'] = df_random['texto'].apply(preprocess_text)
@@ -103,17 +131,18 @@ print("Previsões em dados embaralhados (NLP):", predicoes_random)
 # --- Classificação com dados estruturados (RandomForest) ---
 
 # Adicionar ruído na coluna alvo para simular variações
-df['Tempo_Viagem_Minutos'] += np.random.normal(0, 10, size=len(df))
+df['tempo_viagem_minutos'] += np.random.normal(0, 10, size=len(df))
 
-# Embaralhar 10% dos rótulos 'Horario_Pico' para simular erros
+# Embaralhar 10% dos rótulos 'horario_pico' para simular erros
 mask = np.random.rand(len(df)) < 0.1
-df.loc[mask, 'Horario_Pico'] = np.random.permutation(df.loc[mask, 'Horario_Pico'])
+df.loc[mask, 'horario_pico'] = np.random.permutation(df.loc[mask, 'horario_pico'])
 
 # Selecionar features e target
-X = df.drop(columns=['Horario_Pico', 'Hora', 'ID_Veiculo', 'Linha', 'Data_Hora', 'texto', 'rótulo', 'Situacao'], errors='ignore')
-y = df['Horario_Pico']
+# Colunas minúsculas após o processamento em R
+X = df.drop(columns=['horario_pico', 'hora', 'id_veiculo', 'linha', 'data_hora', 'texto', 'rótulo', 'situacao'], errors='ignore')
+y = df['horario_pico']
 
-numeric_features = X.select_dtypes(include=['int64', 'float64']).columns
+numeric_features = X.select_dtypes(include=['int64', 'float64', 'bool']).columns # Incluir bool para horario_pico
 categorical_features = X.select_dtypes(include=['object', 'category']).columns
 
 numeric_transformer = Pipeline([
@@ -147,3 +176,8 @@ y_pred_classif = pipeline_classif.predict(X_test)
 
 print("Acurácia Classificação Estruturada:", accuracy_score(y_test, y_pred_classif))
 print("Relatório Classificação Estruturada:\n", classification_report(y_test, y_pred_classif, zero_division=1))
+
+# Salvar o modelo (opcional, se quiser persistir)
+# import joblib
+# joblib.dump(pipeline_classif, '/data/model_structured_data.pkl')
+# print("Modelo de classificação estruturada salvo em /data/model_structured_data.pkl")
