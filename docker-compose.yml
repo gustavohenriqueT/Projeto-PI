@@ -9,6 +9,7 @@ services:
     volumes:
       - jenkins_data:/var/jenkins_home
       - /var/run/docker.sock:/var/run/docker.sock
+      - .:/app/projeto-pi
     restart: unless-stopped
 
   postgres:
@@ -35,8 +36,8 @@ services:
       - ./data:/app/data
     depends_on:
       postgres:
-        # Adicionado: Garante que o banco esteja pronto antes de gerar dados
         condition: service_healthy
+    # Nao remover `restart: on-failure` para o data-generator, ele é um job
     restart: on-failure
 
   r-processing:
@@ -44,21 +45,18 @@ services:
     volumes:
       - ./data:/app/data
     depends_on:
-      postgres:
-        # Mantido: R pode precisar do banco
-        condition: service_healthy
       data-generator:
-        # Modificado: Garante que R rode APÓS a geração de dados
-        condition: service_completed_successfully
+        condition: service_completed_successfully # Roda APÓS a geração de dados
     restart: on-failure
 
   data-warehouse:
     build: ./data-warehouse
     volumes:
-      - ./data:/app/data
+      - ./data:/app/data # Monta o diretório 'data' para acesso ao CSV gerado pelo R
       - ./data-warehouse/datalake:/app/datalake
     depends_on:
       r-processing:
+        # data-warehouse precisa do CSV processado pelo R
         condition: service_completed_successfully
     restart: on-failure
 
@@ -68,12 +66,13 @@ services:
       - "8080:8080"
       - "7077:7077"
     volumes:
-      - ./spark-processing:/app
-      - ./data:/data
+      - ./spark-processing:/app # Seu codigo Spark vai aqui
+      - ./data:/data # Onde os dados processados pelo R e gerados pelo generator estão
     environment:
       SPARK_MODE: master
     depends_on:
       r-processing:
+        # Spark precisa dos dados processados pelo R
         condition: service_completed_successfully
     restart: unless-stopped
 
@@ -95,7 +94,10 @@ services:
       - "5000:5000"
     depends_on:
       data-warehouse:
+        # O dashboard depende do DW estar populado
         condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
     restart: unless-stopped
 
 volumes:
