@@ -5,6 +5,7 @@ import random
 from datetime import datetime, timedelta
 import psycopg2
 from psycopg2 import sql
+import psycopg2.extras # ADICIONE ESTA LINHA
 
 # Configurações
 NUM_REGISTROS = 20000
@@ -58,7 +59,7 @@ def salvar_para_csv(df, diretorio):
     """Salva os dados em arquivo CSV"""
     os.makedirs(diretorio, exist_ok=True)
     caminho_arquivo = os.path.join(diretorio, "transport_data.csv")
-    if os.path.exists(caminho_arquivo):  # CORREÇÃO: Esta linha estava com indentação extra
+    if os.path.exists(caminho_arquivo): 
         os.remove(caminho_arquivo)
     df.to_csv(caminho_arquivo, index=False)
     print(f"Dados salvos em: {caminho_arquivo}")
@@ -107,7 +108,7 @@ def importar_para_postgres(df):
         """)
         
         # Executa a inserção
-        psycopg2.extras.execute_values(
+        psycopg2.extras.execute_values( # USO DE psycopg2.extras
             cur, query, tuples,
             template="(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
             page_size=1000
