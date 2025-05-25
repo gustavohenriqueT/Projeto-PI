@@ -1,3 +1,4 @@
+# ... (imports existentes)
 from dash import Dash, dcc, html, Input, Output, no_update
 import plotly.express as px
 import pandas as pd
@@ -28,14 +29,16 @@ def check_db_connection(max_retries=5, delay=5):
     for attempt in range(max_retries):
         try:
             with engine.connect() as conn:
-                conn.execute("SELECT 1")
+                # Tenta executar uma consulta simples para verificar a conexão
+                conn.execute("SELECT 1").scalar() 
             print("✅ Conexão com PostgreSQL estabelecida")
             return True
         except Exception as e:
-            if attempt == max_retries - 1:
-                raise
-            print(f"⚠️ Tentativa {attempt + 1}/{max_retries} - Aguardando PostgreSQL...")
+            print(f"⚠️ Tentativa {attempt + 1}/{max_retries} - Aguardando PostgreSQL... Erro: {e}")
             sleep(delay)
+    # Se todas as tentativas falharem, levanta a exceção
+    raise ConnectionError("❌ Falha ao conectar ao PostgreSQL após várias tentativas")
+
 
 # Inicialização do app
 app = Dash(__name__)
@@ -46,16 +49,16 @@ app.layout = html.Div([
     html.Div(id='hidden-div', style={'display': 'none'}),
     dcc.Store(id='database-status', data={'ready': False}),
     dcc.Interval(id='init-timer', interval=5000, n_intervals=0, max_intervals=12),
-    
+
     html.Div([
         html.H1("Análise de Transporte Público", style={'textAlign': 'center', 'color': '#2c3e50'}),
-        
+
         html.Div(id='connection-status', style={
             'textAlign': 'center',
             'color': '#e74c3c',
             'padding': '20px'
         }),
-        
+
         html.Div([
             dcc.Loading(
                 id="loading-1",
@@ -68,7 +71,7 @@ app.layout = html.Div([
                 children=dcc.Graph(id='passengers-plot', style={'width': '50%', 'display': 'inline-block'}) 
             )
         ], style={'margin': '20px'}, id='graphs-row-1', hidden=True),
-        
+
         html.Div([
             dcc.Loading(
                 id="loading-3",
@@ -81,7 +84,7 @@ app.layout = html.Div([
                 children=dcc.Graph(id='trips-plot', style={'width': '50%', 'display': 'inline-block'}) 
             )
         ], style={'margin': '20px'}, id='graphs-row-2', hidden=True),
-        
+
         dcc.Dropdown(
             id='line-selector',
             placeholder="Selecione uma ou mais linhas",
@@ -89,7 +92,7 @@ app.layout = html.Div([
             style={'width': '80%', 'margin': '20px auto'},
             disabled=True
         ),
-        
+
         html.Div(id='last-update', style={
             'textAlign': 'right',
             'color': '#7f8c8d',
@@ -108,42 +111,45 @@ app.layout = html.Div([
     Input('init-timer', 'n_intervals')
 )
 def check_database_connection(n):
+    if n == 0: # Para a primeira tentativa, tenta imediatamente.
+        print("Tentando conexão inicial com o banco de dados...")
+
     try:
-        if check_db_connection(max_retries=1):
-            # Verifica se a tabela existe
+        if check_db_connection(max_retries=1): # Tenta uma vez por intervalo
+            # Verifica se a tabela existe E se tem dados
             with engine.connect() as conn:
-                print("Verificando existência da tabela transport_data...")
+                print("Verificando existência e dados da tabela transport_data...")
+                # Verifica a existência da tabela
                 table_exists = conn.execute("""
                     SELECT EXISTS (
                         SELECT FROM information_schema.tables 
                         WHERE table_schema = 'public' AND table_name = 'transport_data'
                     )
                 """).scalar()
-                print(f"Resultado da verificação da tabela: {table_exists}")
-            
-            if not table_exists:
-                print("Erro: Tabela 'transport_data' não encontrada!")
-                raise Exception("Tabela 'transport_data' não encontrada")
-            
-            print("Tabela encontrada! Exibindo conteúdo principal.")
-            return {'ready': True}, "", False, False
-    
+
+                if not table_exists:
+                    raise Exception("Tabela 'transport_data' não encontrada!")
+
+                # Verifica se a tabela tem dados
+                row_count = conn.execute("SELECT COUNT(*) FROM transport_data").scalar()
+                if row_count == 0:
+                    raise Exception("Tabela 'transport_data' vazia! Verifique o data-generator e data-warehouse.")
+
+                print(f"Tabela encontrada e contém {row_count} registros. Exibindo conteúdo principal.")
+                return {'ready': True}, "", False, False
+
     except Exception as e:
         print(f"Erro no callback check_database_connection: {e}")
+        status_message = f"Conectando ao banco de dados ou verificando tabela... Tentativa {n + 1}/12. Erro: {str(e)}"
+
         if n >= 11:  # Última tentativa
-            return (no_update, 
-                    html.Div([
-                        html.H3("Erro de conexão com o banco de dados ou tabela não encontrada"),
-                        html.P(str(e)),
-                        html.P("Verifique os logs e se a tabela 'transport_data' existe e contém dados.")
-                    ]), 
-                    True,
-                    True)
-        
-        return (no_update, 
-                f"Conectando ao banco de dados ou verificando tabela... Tentativa {n + 1}/12", 
-                True,
-                True)
+            status_message = html.Div([
+                                html.H3("Erro de conexão com o banco de dados ou tabela não encontrada/vazia"),
+                                html.P(str(e)),
+                                html.P("Verifique os logs dos contêineres 'postgres', 'data-generator', 'data-warehouse'.")
+                            ])
+
+        return (no_update, status_message, True, True)
 
 # Callback para carregar as opções do dropdown
 @app.callback(
@@ -153,9 +159,10 @@ def check_database_connection(n):
 def update_dropdown_options(db_status):
     if not db_status['ready']:
         return []
-    
+
     try:
-        query = "SELECT DISTINCT linha FROM transport_data ORDER BY linha"
+        # Coluna 'linha' em minúsculas
+        query = "SELECT DISTINCT linha FROM transport_data ORDER BY linha" 
         lines = pd.read_sql(query, engine)['linha'].tolist()
         return [{'label': line, 'value': line} for line in lines]
     except Exception as e:
@@ -176,9 +183,8 @@ def update_dropdown_options(db_status):
 )
 def update_all_graphs(selected_lines, db_status):
     if not db_status['ready']:
-        # Mantém gráficos escondidos se DB não está pronto
         return no_update, no_update, no_update, no_update, no_update, True, True
-    
+
     try:
         base_query = """
         SELECT 
@@ -192,19 +198,19 @@ def update_all_graphs(selected_lines, db_status):
         {where_clause}
         GROUP BY linha, horario_pico
         """
-        
+
         if selected_lines:
+            # Usar placeholders corretos para params
             query = base_query.format(where_clause="WHERE linha IN %(lines)s")
             df = pd.read_sql(query, engine, params={'lines': tuple(selected_lines)})
         else:
             query = base_query.format(where_clause="")
             df = pd.read_sql(query, engine)
-        
+
         if df.empty:
-            empty_fig = px.scatter(title="Sem dados disponíveis").update_layout(plot_bgcolor='white')
-            # Mostra gráficos mesmo vazios, mas com título indicativo
+            empty_fig = px.scatter(title="Sem dados disponíveis para seleção").update_layout(plot_bgcolor='white')
             return empty_fig, empty_fig, empty_fig, empty_fig, "Última atualização: " + datetime.now().strftime("%d/%m/%Y %H:%M:%S"), False, False
-        
+
         # Gráfico 1: Mapa
         map_fig = px.scatter_mapbox(
             df,
@@ -227,55 +233,55 @@ def update_all_graphs(selected_lines, db_status):
             margin={"r":0,"t":0,"l":0,"b":0},
             showlegend=False
         )
-        
+
         # Gráfico 2: Passageiros
         passengers_fig = px.bar(
             df,
             x="linha",
             y="avg_passengers",
             color="horario_pico",
-            title="Média de Passageiros",
-            labels={"avg_passengers": "Passageiros (média)", "linha": "Linha"},
+            title="Média de Passageiros por Linha e Horário de Pico",
+            labels={"avg_passengers": "Passageiros (média)", "linha": "Linha", "horario_pico": "Horário de Pico (1=Sim, 0=Não)"},
             hover_data=["total_trips"]
         ).update_layout(
             xaxis_tickangle=-45,
             plot_bgcolor='white'
         )
-        
+
         # Gráfico 3: Clusters (Horário Pico)
         cluster_fig = px.pie(
             df,
             names="horario_pico",
             values="total_trips",
-            title="Distribuição por Horário (Pico/Normal)",
+            title="Distribuição de Viagens por Horário (Pico/Normal)",
             hole=0.3,
-            labels={'horario_pico': 'Horário Pico'}
+            labels={'horario_pico': 'Horário Pico (1=Sim, 0=Não)'}
         ).update_traces(
             textposition='inside',
             textinfo='percent+label'
         )
-        
+
         # Gráfico 4: Viagens
         trips_fig = px.line(
             df,
             x="linha",
             y="total_trips",
-            title="Total de Viagens",
+            title="Total de Viagens por Linha e Horário de Pico",
             markers=True,
-            color="horario_pico"
+            color="horario_pico",
+            labels={"total_trips": "Número de Viagens", "linha": "Linha", "horario_pico": "Horário de Pico (1=Sim, 0=Não)"}
         ).update_layout(
             yaxis_title="Número de Viagens",
             xaxis_title="Linha"
         )
-        
+
         # Mostra os gráficos
         return map_fig, passengers_fig, cluster_fig, trips_fig, "Última atualização: " + datetime.now().strftime("%d/%m/%Y %H:%M:%S"), False, False
-    
+
     except Exception as e:
         print(f"Erro ao gerar gráficos: {e}")
         error_fig = px.scatter(title=f"Erro ao gerar gráficos: {str(e)}").update_layout(plot_bgcolor='white')
-        # Mostra gráficos com erro
-        return error_fig, error_fig, error_fig, error_fig, "Erro ao atualizar", False, False
+        return error_fig, error_fig, error_fig, error_fig, "Erro ao atualizar: " + datetime.now().strftime("%d/%m/%Y %H:%M:%S"), False, False
 
 if __name__ == '__main__':
     app.run_server(host='0.0.0.0', port=5000, debug=False)
