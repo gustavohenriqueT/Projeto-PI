@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   jenkins:
-    build: ./jenkins
+    image: jenkins/jenkins:lts
     ports:
       - "18080:8080"
       - "50000:50000"
