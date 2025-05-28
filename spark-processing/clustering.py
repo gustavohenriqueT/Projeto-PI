@@ -43,11 +43,11 @@ df = pd.read_csv(csv_path)
 # Baixar os recursos do NLTK se não existirem
 try:
     nltk.data.find('corpora/stopwords')
-except nltk.downloader.DownloadError:
+except nltk.downloader.DownloadError: # type: ignore
     nltk.download('stopwords', download_dir="/app/nltk_data")
 try:
     nltk.data.find('stemmers/rslp')
-except nltk.downloader.DownloadError:
+except nltk.downloader.DownloadError: # type: ignore
     nltk.download('rslp', download_dir="/app/nltk_data")
 
 stop_words = set(stopwords.words('portuguese'))
