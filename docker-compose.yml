@@ -2,14 +2,14 @@ version: '3.8'
 
 services:
   jenkins:
-    image: jenkins/jenkins:lts
+    build: ./jenkins # Certifique-se que esta pasta contém o Dockerfile acima
     ports:
-      - "18080:8080"
-      - "50000:50000"
+      - "18080:8080" # Porta para acessar a UI do Jenkins
+      - "50000:50000" # Porta para agentes Jenkins, se necessário
     volumes:
-      - jenkins_data:/var/jenkins_home
-      - /var/run/docker.sock:/var/run/docker.sock
-      - .:/app/projeto-pi
+      - jenkins_data:/var/jenkins_home # Persistência dos dados do Jenkins
+      - /var/run/docker.sock:/var/run/docker.sock # Permite que o Jenkins controle o Docker do host
+      - .:/app/projeto-pi # Monta a raiz do projeto dentro do contêiner Jenkins (para acesso ao docker-compose.yml)
     restart: unless-stopped
 
   postgres:
