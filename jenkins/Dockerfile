@@ -5,9 +5,7 @@ FROM jenkins/jenkins:lts-jdk17
 USER root
 
 # Instalar dependências necessárias para Docker CLI e Docker Compose
-# Dividido em múltiplos RUN para melhor legibilidade e caching, se preferir.
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
+RUN apt-get update && apt-get install -y \
     apt-transport-https \
     ca-certificates \
     curl \
@@ -21,16 +19,14 @@ RUN curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /
     echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian \
     $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null && \
     apt-get update && \
-    apt-get install -y --no-install-recommends docker-ce-cli && \
+    apt-get install -y docker-ce-cli && \
     rm -rf /var/lib/apt/lists/*
 
 # Instalar Docker Compose V2 (plugin)
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends docker-compose-plugin && \
+    apt-get install -y docker-compose-plugin && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-
-
-# Voltar para o usuário jenkins padrão da imagem para a execução do Jenkins
+# Voltar para o usuário jenkins padrão da imagem
 USER jenkins
