@@ -18,8 +18,6 @@ try:
     print(f"Arquivo CSV '{CSV_PATH_INPUT}' carregado com sucesso. Shape: {df.shape}")
 
     # Garantir que as colunas esperadas existem (nomes em minúsculo após processamento R)
-    # Colunas usadas nas simulações do notebook original: Situacao, ID_Veiculo, Tempo_Viagem_Minutos, Horario_Pico, Numero_Passageiros
-    # No seu transport_dataL.csv, os nomes são: situacao, id_veiculo, tempo_viagem_minutos, horario_pico, numero_passageiros, linha, data_hora, latitude, longitude, hora
     expected_cols_for_simulations = ['situacao', 'id_veiculo', 'tempo_viagem_minutos', 'horario_pico', 'numero_passageiros', 'linha', 'hora']
     
     actual_cols = df.columns.tolist()

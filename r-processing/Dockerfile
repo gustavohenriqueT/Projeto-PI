@@ -13,7 +13,7 @@ WORKDIR /app
 COPY requirements.R .
 RUN Rscript requirements.R
 
-# Copia o script de análise (renomeie para .R se necessário)
+# Copia o script de análise 
 COPY analysis.R .
 
 CMD ["Rscript", "analysis.R"]

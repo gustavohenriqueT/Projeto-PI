@@ -18,5 +18,5 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # Copia apenas o script necessário
 COPY process_dw_dl.py .
 
-# Comando direto (sem wait-for-it)
+# Comando direto
 CMD ["python", "process_dw_dl.py"]

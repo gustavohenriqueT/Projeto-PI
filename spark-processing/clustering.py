@@ -4,7 +4,7 @@ import re
 import nltk
 import matplotlib.pyplot as plt
 import seaborn as sns
-import os # Adicionado para lidar com o download de NLTK
+import os
 
 from nltk.corpus import stopwords
 from nltk.stem import RSLPStemmer
@@ -35,8 +35,6 @@ if not os.path.exists(csv_path):
     print(f"Erro: O arquivo {csv_path} não foi encontrado. Verifique o processamento R.")
     exit(1)
 df = pd.read_csv(csv_path)
-
-# print(df.head())
 
 # --- Pré-processamento texto ---
 
@@ -84,7 +82,6 @@ df['rótulo'] = df['situacao'].astype(str) # 'Situacao' também se torna 'situac
 # Aplicar pré-processamento
 df['texto'] = df['texto'].apply(preprocess_text)
 
-# print(df[['texto', 'rótulo']].head())
 
 # --- Dividir dados para classificação NLP ---
 
@@ -176,8 +173,3 @@ y_pred_classif = pipeline_classif.predict(X_test)
 
 print("Acurácia Classificação Estruturada:", accuracy_score(y_test, y_pred_classif))
 print("Relatório Classificação Estruturada:\n", classification_report(y_test, y_pred_classif, zero_division=1))
-
-# Salvar o modelo (opcional, se quiser persistir)
-# import joblib
-# joblib.dump(pipeline_classif, '/data/model_structured_data.pkl')
-# print("Modelo de classificação estruturada salvo em /data/model_structured_data.pkl")

@@ -62,64 +62,6 @@ def salvar_para_csv(df, diretorio): #
     print(f"Dados salvos em: {caminho_arquivo}") #
     return caminho_arquivo #
 
-# def importar_para_postgres(df): # Removido ou comentado
-#     """Importa os dados para um banco PostgreSQL"""
-#     try:
-#         conn = psycopg2.connect(
-#             host="postgres",
-#             database="transport_db",
-#             user="admin",
-#             password="password",
-#             port="5432"
-#         )
-#         cur = conn.cursor()
-        
-#         # Cria a tabela se não existir
-#         cur.execute("""
-#             CREATE TABLE IF NOT EXISTS transport_data (
-#                 id SERIAL PRIMARY KEY,
-#                 data_hora TIMESTAMP,
-#                 id_veiculo VARCHAR(50),
-#                 linha VARCHAR(50),
-#                 latitude FLOAT,
-#                 longitude FLOAT,
-#                 numero_passageiros INTEGER,
-#                 tempo_viagem_minutos INTEGER,
-#                 hora INTEGER,
-#                 horario_pico BOOLEAN,
-#                 situacao VARCHAR(50)
-#             );
-#         """)
-        
-#         # Prepara os dados para inserção
-#         cols = ['data_hora', 'id_veiculo', 'linha', 'latitude', 'longitude', 
-#                 'numero_passageiros', 'tempo_viagem_minutos', 'hora', 'horario_pico', 'situacao']
-#         tuples = [tuple(x) for x in df[cols].to_numpy()]
-        
-#         # SQL para inserção em massa
-#         query = sql.SQL("""
-#             INSERT INTO transport_data 
-#             (data_hora, id_veiculo, linha, latitude, longitude, 
-#              numero_passageiros, tempo_viagem_minutos, hora, horario_pico, situacao) 
-#             VALUES %s
-#         """)
-        
-#         # Executa a inserção
-#         psycopg2.extras.execute_values( # USO DE psycopg2.extras
-#             cur, query, tuples,
-#             template="(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
-#             page_size=1000
-#         )
-        
-#         conn.commit()
-#         print(f"Dados importados para PostgreSQL (Total: {len(df)} registros)")
-        
-#     except Exception as e:
-#         print(f"Erro ao importar dados: {e}")
-#         raise
-#     finally:
-#         if conn:
-#             conn.close()
 
 if __name__ == "__main__":
     # Gera os dados sintéticos

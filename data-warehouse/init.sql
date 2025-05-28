@@ -13,7 +13,6 @@ CREATE TABLE IF NOT EXISTS transport_data (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Índices atualizados
 CREATE INDEX IF NOT EXISTS idx_transport_line ON transport_data(linha);
 CREATE INDEX IF NOT EXISTS idx_horario_pico ON transport_data(horario_pico);
 CREATE INDEX IF NOT EXISTS idx_data_hora ON transport_data(data_hora);

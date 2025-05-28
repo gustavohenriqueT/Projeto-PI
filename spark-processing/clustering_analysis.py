@@ -33,8 +33,6 @@ try:
         exit(1)
     
     # Selecionar colunas relevantes para clusterização (todas devem ser numéricas ou pré-processadas para tal)
-    # Exemplo: latitude, longitude, numero_passageiros, tempo_viagem_minutos, hora
-    # Certifique-se que os nomes estão corretos e em minúsculas
     features_to_cluster = ['latitude', 'longitude', 'numero_passageiros', 'tempo_viagem_minutos', 'hora']
     
     # Verificar se as colunas existem
