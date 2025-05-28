@@ -1,0 +1,105 @@
+version: '3.8'
+
+services:
+  jenkins:
+    image: jenkins/jenkins:lts
+    ports:
+      - "18080:8080"
+      - "50000:50000"
+    volumes:
+      - jenkins_data:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+      - .:/app/projeto-pi
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: transport_db
+    volumes:
+      - ./data-warehouse/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U admin -d transport_db" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  data-generator:
+    build: ./data-generator
+    volumes:
+      - ./data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+    # Nao remover `restart: on-failure` para o data-generator, ele é um job
+    restart: on-failure
+
+  r-processing:
+    build: ./r-processing
+    volumes:
+      - ./data:/app/data
+    depends_on:
+      data-generator:
+        condition: service_completed_successfully # Roda APÓS a geração de dados
+    restart: on-failure
+
+  data-warehouse:
+    build: ./data-warehouse
+    volumes:
+      - ./data:/app/data # Monta o diretório 'data' para acesso ao CSV gerado pelo R
+      - ./data-warehouse/datalake:/app/datalake
+    depends_on:
+      r-processing:
+        # data-warehouse precisa do CSV processado pelo R
+        condition: service_completed_successfully
+    restart: on-failure
+
+  spark-master:
+    image: bitnami/spark:3.4
+    ports:
+      - "8080:8080"
+      - "7077:7077"
+    volumes:
+      - ./spark-processing:/app # Seu codigo Spark vai aqui
+      - ./data:/data # Onde os dados processados pelo R e gerados pelo generator estão
+    environment:
+      SPARK_MODE: master
+    depends_on:
+      r-processing:
+        # Spark precisa dos dados processados pelo R
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  spark-worker:
+    image: bitnami/spark:3.4
+    depends_on:
+      - spark-master
+    environment:
+      SPARK_MODE: worker
+      SPARK_MASTER_URL: "spark://spark-master:7077"
+    volumes:
+      - ./spark-processing:/app
+      - ./data:/data
+    restart: unless-stopped
+
+  web-dashboard:
+    build: ./web-dashboard
+    ports:
+      - "5000:5000"
+    depends_on:
+      data-warehouse:
+        # O dashboard depende do DW estar populado
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  jenkins_data:
+  postgres_data:

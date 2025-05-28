@@ -1,0 +1,91 @@
+// Jenkinsfile
+pipeline {
+    agent any
+
+    stages {
+        stage('Clean Docker Environment') {
+            steps {
+                script {
+                    echo 'Stopping and removing existing Docker containers (excluding Jenkins)...'
+                    // Parar e remover os serviços que não são Jenkins para garantir um início limpo
+                    // Tentativa de parar todos, ignorando erros se já estiverem parados/não existirem
+                    sh 'docker-compose down --remove-orphans || true'
+                }
+            }
+        }
+        stage('Build and Run Docker Compose Services') {
+            steps {
+                script {
+                    echo 'Building and starting Docker Compose services...'
+                    // Garante que todos os serviços são construídos e iniciados
+                    // postgres precisa subir primeiro para o healthcheck
+                    sh 'docker-compose up -d --build postgres'
+                    echo 'Waiting for postgres to be healthy...'
+                    // Esperar o postgres ficar saudável
+                    sh 'docker-compose exec -T postgres pg_isready -U admin -d transport_db'
+
+                    echo 'Starting other services...'
+                    sh 'docker-compose up -d --build --force-recreate data-generator r-processing data-warehouse spark-master spark-worker web-dashboard'
+
+                    echo 'Waiting for data-generator to complete...'
+                    // Wait for the data-generator (job) to complete successfully
+                    sh 'docker-compose wait data-generator'
+
+                    echo 'Waiting for r-processing to complete...'
+                    // Wait for r-processing (job) to complete successfully
+                    sh 'docker-compose wait r-processing'
+
+                    echo 'Waiting for data-warehouse to complete...'
+                    // Wait for data-warehouse (job) to complete successfully
+                    sh 'docker-compose wait data-warehouse'
+
+                    echo 'All batch services have completed. Ensuring web services are up.'
+                }
+            }
+        }
+        stage('Run Spark Analysis') {
+            steps {
+                script {
+                    echo 'Running Spark Analysis scripts...'
+                    // Executa o script spark_analysis.py no container spark-master
+                    sh 'docker-compose exec -T spark-master /opt/bitnami/spark/bin/spark-submit /app/spark_analysis.py'
+                    // Executa o script clustering.py no container spark-master
+                    sh 'docker-compose exec -T spark-master /opt/bitnami/spark/bin/spark-submit /app/clustering.py'
+                }
+            }
+        }
+        stage('Check Web Dashboard Status') {
+            steps {
+                script {
+                    echo 'Waiting for Web Dashboard to be fully ready...'
+                    sleep 30 // Dá um tempo extra para o Dash carregar todos os dados e renderizar
+                    echo 'Checking if Web Dashboard is accessible...'
+                    // Tenta acessar o dashboard internamente na rede Docker Compose
+                    sh 'curl -f http://web-dashboard:5000'
+                    echo 'Web Dashboard is accessible internally. Check your browser at http://localhost:5000'
+                }
+            }
+        }
+        stage('Show Final Docker Logs (Optional)') {
+            steps {
+                script {
+                    echo 'Showing logs for data-generator, r-processing, data-warehouse, and web-dashboard...'
+                    sh 'docker-compose logs --tail 50 data-generator r-processing data-warehouse web-dashboard'
+                }
+            }
+        }
+    }
+    post {
+        always {
+            echo 'Pipeline finished.'
+        }
+        failure {
+            echo 'Pipeline failed. Check logs for details.'
+            // Opcional: coletar logs em caso de falha para diagnóstico
+            script {
+                sh 'docker-compose logs --tail 200 > pipeline_failure_logs.txt || true'
+                archiveArtifacts artifacts: 'pipeline_failure_logs.txt', fingerprint: true
+            }
+        }
+    }
+}

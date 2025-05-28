@@ -1,0 +1,3 @@
+pandas==2.2.3
+psycopg2-binary==2.9.9  # Usando a versão binária que não requer compilação
+sqlalchemy==2.0.25
