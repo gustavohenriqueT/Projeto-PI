@@ -30,14 +30,7 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Opcional: Adicionar o usuário jenkins ao grupo docker
-# Isso pode ser necessário dependendo de como o socket do Docker está configurado no host
-# e se o usuário jenkins precisa de permissões diretas para o socket.
-# Geralmente, para o Jenkins controlar o Docker via socket montado,
-# o próprio processo Jenkins (rodando como root ou um usuário já no grupo docker do host via GID)
-# ou o Docker daemon no host lida com as permissões.
-# Se você tiver problemas de permissão do Docker *dentro* do pipeline Jenkins, esta linha pode ajudar:
-# RUN usermod -aG docker jenkins
+
 
 # Voltar para o usuário jenkins padrão da imagem para a execução do Jenkins
 USER jenkins
