@@ -1,0 +1,43 @@
+# Usar uma imagem base oficial do Jenkins LTS com JDK 17 (recomendado)
+FROM jenkins/jenkins:lts-jdk17
+
+# Mudar para o usuário root para instalar pacotes de sistema
+USER root
+
+# Instalar dependências necessárias para Docker CLI e Docker Compose
+# Dividido em múltiplos RUN para melhor legibilidade e caching, se preferir.
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    apt-transport-https \
+    ca-certificates \
+    curl \
+    gnupg \
+    lsb-release \
+    software-properties-common && \
+    rm -rf /var/lib/apt/lists/*
+
+# Adicionar o repositório oficial do Docker e instalar Docker CLI
+RUN curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg && \
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian \
+    $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends docker-ce-cli && \
+    rm -rf /var/lib/apt/lists/*
+
+# Instalar Docker Compose V2 (plugin)
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends docker-compose-plugin && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Opcional: Adicionar o usuário jenkins ao grupo docker
+# Isso pode ser necessário dependendo de como o socket do Docker está configurado no host
+# e se o usuário jenkins precisa de permissões diretas para o socket.
+# Geralmente, para o Jenkins controlar o Docker via socket montado,
+# o próprio processo Jenkins (rodando como root ou um usuário já no grupo docker do host via GID)
+# ou o Docker daemon no host lida com as permissões.
+# Se você tiver problemas de permissão do Docker *dentro* do pipeline Jenkins, esta linha pode ajudar:
+# RUN usermod -aG docker jenkins
+
+# Voltar para o usuário jenkins padrão da imagem para a execução do Jenkins
+USER jenkins
