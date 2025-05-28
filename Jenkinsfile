@@ -2,7 +2,6 @@ pipeline {
     agent any
 
     environment {
-        // Defina variáveis se necessário. Exemplo:
         DOCKER_BUILDKIT = "1"
     }
 
@@ -21,28 +20,28 @@ pipeline {
         stage('Limpar Ambiente Docker Anterior') {
             steps {
                 echo 'Parando e removendo contêineres Docker de execuções anteriores (se existirem)...'
-                sh 'docker-compose down --remove-orphans || true'
+                sh 'docker compose down --remove-orphans || true'
             }
         }
 
         stage('Construir Imagens Docker') {
             steps {
                 echo 'Construindo todas as imagens Docker definidas no docker-compose.yml...'
-                sh 'docker-compose build --no-cache || true'
+                sh 'docker compose build --no-cache || true'
             }
         }
 
         stage('Executar Pipeline de Dados e Análises') {
             steps {
                 echo 'Executando os serviços definidos para processamento de dados e análises...'
-                sh 'docker-compose up -d || true'
+                sh 'docker compose up -d || true'
             }
         }
 
         stage('Aguardando Finalização dos Jobs') {
             steps {
                 echo 'Aguardando a conclusão dos jobs de dados e análise...'
-                // Aqui você pode adicionar lógica para aguardar jobs
+                // Adicione lógica de espera se necessário (ex: healthchecks ou polling)
             }
         }
 
@@ -84,7 +83,7 @@ pipeline {
 
                 for (svc in services) {
                     echo "Últimos logs de ${svc} (em caso de falha):"
-                    sh "docker-compose logs --tail 100 ${svc} || true"
+                    sh "docker compose logs --tail 100 ${svc} || true"
                 }
             }
         }

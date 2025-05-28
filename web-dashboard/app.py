@@ -9,7 +9,7 @@ import os
 import base64 
 import json 
 
-# Filter out pandas SQL warnings
+# Filter out pandas SQL warningsFyan
 warnings.filterwarnings("ignore", category=UserWarning)
 
 # Configurações do banco de dados
@@ -22,7 +22,7 @@ DB_CONFIG = {
 }
 
 DB_URL = f'postgresql://{DB_CONFIG["user"]}:{DB_CONFIG["password"]}@{DB_CONFIG["host"]}:{DB_CONFIG["port"]}/{DB_CONFIG["database"]}'
-engine = create_engine(DB_URL)
+engine = create_engine(DB_URL) 
 
 def check_db_connection(max_retries=5, delay=5):
     for attempt in range(max_retries):
@@ -209,25 +209,25 @@ def update_all_graphs(selected_lines, db_status):
         map_fig = px.scatter_mapbox(df, lat="avg_lat", lon="avg_lon", color="linha", size="avg_passengers", hover_name="linha", 
                                     hover_data={"avg_passengers": ":.2f", "total_trips": True, "horario_pico_desc": True, "avg_lat":False, "avg_lon":False},
                                     zoom=10, height=500, title="Localização Média e Volume de Passageiros"
-                                   ).update_layout(mapbox_style="open-street-map", margin={"r":0,"t":35,"l":0,"b":0}, showlegend=True, **fig_layout_defaults)
+                                   ).update_layout(mapbox_style="open-street-map", margin={"r":0,"t":35,"l":0,"b":0}, showlegend=True, **fig_layout_defaults)  # type: ignore
         
         pass_fig = px.bar(df, x="linha", y="avg_passengers", color="horario_pico_desc", title="Média de Passageiros", 
                           labels={"avg_passengers": "Média de Passageiros", "horario_pico_desc": "Pico?"}, barmode='group'
-                         ).update_layout(xaxis_tickangle=-45, legend_title_text='Horário Pico', **fig_layout_defaults)
+                         ).update_layout(xaxis_tickangle=-45, legend_title_text='Horário Pico', **fig_layout_defaults) # type: ignore
         
         df_pie = df.groupby("horario_pico_desc")["total_trips"].sum().reset_index()
         clu_fig = px.pie(df_pie, names="horario_pico_desc", values="total_trips", title="Viagens em Pico/Não Pico", 
                          hole=0.3, labels={'horario_pico_desc': 'Pico?'}
-                        ).update_traces(textposition='inside', textinfo='percent+label').update_layout(**fig_layout_defaults)
+                        ).update_traces(textposition='inside', textinfo='percent+label').update_layout(**fig_layout_defaults) # type: ignore
         
         trip_fig_ln = px.line(df, x="linha", y="total_trips", color="horario_pico_desc", markers=True, title="Total de Viagens por Linha", 
                               labels={"total_trips": "Nº Viagens", "horario_pico_desc": "Pico?"}
-                             ).update_layout(legend_title_text='Horário Pico', **fig_layout_defaults)
+                             ).update_layout(legend_title_text='Horário Pico', **fig_layout_defaults) # type: ignore
         
         trip_time_bar = px.bar(df, x="linha", y="avg_trip_time", color="horario_pico_desc", title="Tempo Médio de Viagem (min)", 
                                labels={"avg_trip_time": "Tempo Médio (min)", "horario_pico_desc": "Pico?"}, barmode='group'
-                              ).update_layout(xaxis_tickangle=-45, legend_title_text='Horário Pico', **fig_layout_defaults)
-        
+                              ).update_layout(xaxis_tickangle=-45, legend_title_text='Horário Pico', **fig_layout_defaults) # type: ignore
+         
         return map_fig, pass_fig, clu_fig, trip_fig_ln, trip_time_bar, "Atualizado: " + datetime.now().strftime("%d/%m/%Y %H:%M:%S"), False, False, False
     except Exception as e:
         print(f"Erro ao gerar gráficos principais: {e}")
@@ -265,12 +265,12 @@ def update_olap_plot(dim1_key, dim2_key, db_status):
         labels = {'dim1': dim1_label.replace("_"," ").capitalize(), 'metric_val': f'{agg_func.capitalize()} {metric_agg.replace("_"," ")}'}
         legend_title = ""
         if dim2_alias:
-            title_str += f' e {dim2_label.replace("_"," ").capitalize()}'
-            labels['dim2'] = dim2_label.replace("_"," ").capitalize()
-            legend_title = dim2_label.replace("_"," ").capitalize()
+            title_str += f' e {dim2_label.replace("_"," ").capitalize()}' # type: ignore
+            labels['dim2'] = dim2_label.replace("_"," ").capitalize() # type: ignore
+            legend_title = dim2_label.replace("_"," ").capitalize() # type: ignore
         
         fig = px.bar(df_res, x='dim1', y='metric_val', color='dim2' if dim2_alias else None, barmode='group' if dim2_alias else 'relative', title=title_str, labels=labels)
-        fig.update_layout(xaxis_tickangle=-45, legend_title_text=legend_title, xaxis_title=dim1_label.replace("_"," ").capitalize(), **fig_layout_defaults) # Usando fig_layout_defaults
+        fig.update_layout(xaxis_tickangle=-45, legend_title_text=legend_title, xaxis_title=dim1_label.replace("_"," ").capitalize(), **fig_layout_defaults) # Usando fig_layout_defaults # type: ignore
         return fig
     except Exception as e:
         print(f"Erro na consulta OLAP: {e}")
