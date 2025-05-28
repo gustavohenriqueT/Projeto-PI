@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS transport_data (
     longitude FLOAT NOT NULL,
     numero_passageiros INTEGER CHECK (numero_passageiros >= 0),
     tempo_viagem_minutos INTEGER,
-    hora INTEGER, -- ESTA LINHA DEVE SER INTEGER
+    hora INTEGER,
     horario_pico BOOLEAN,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );

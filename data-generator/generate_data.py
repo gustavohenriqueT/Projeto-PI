@@ -3,9 +3,6 @@ import pandas as pd
 import numpy as np
 import random
 from datetime import datetime, timedelta
-# import psycopg2 # Comentado ou removido
-# from psycopg2 import sql # Comentado ou removido
-# import psycopg2.extras # Comentado ou removido
 
 # Configurações
 NUM_REGISTROS = 20000 #

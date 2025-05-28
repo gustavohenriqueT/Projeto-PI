@@ -37,7 +37,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    # Nao remover `restart: on-failure` para o data-generator, ele é um job
     restart: on-failure
 
   r-processing:
@@ -46,45 +45,76 @@ services:
       - ./data:/app/data
     depends_on:
       data-generator:
-        condition: service_completed_successfully # Roda APÓS a geração de dados
+        condition: service_completed_successfully
     restart: on-failure
 
   data-warehouse:
     build: ./data-warehouse
     volumes:
-      - ./data:/app/data # Monta o diretório 'data' para acesso ao CSV gerado pelo R
-      - ./data-warehouse/datalake:/app/datalake
+      - ./data:/app/data
     depends_on:
       r-processing:
-        # data-warehouse precisa do CSV processado pelo R
         condition: service_completed_successfully
     restart: on-failure
 
+  hadoop-simulations:
+    build:
+      context: ./spark-processing
+    volumes:
+      - ./data:/data
+    command: python hadoop_simulations.py
+    depends_on:
+      r-processing:
+        condition: service_completed_successfully
+    restart: on-failure
+
+  clustering-analysis:
+    build:
+      context: ./spark-processing
+    volumes:
+      - ./data:/data
+    command: python clustering_analysis.py
+    depends_on:
+      r-processing:
+        condition: service_completed_successfully
+    restart: on-failure
+
+  spark-submit-job:
+    build:
+      context: ./spark-processing
+    volumes:
+      - ./data:/data
+    command: [ "spark-submit", "--master", "spark://spark-master:7077", "/app/spark_analysis.py" ] # <--- MUDANÇA AQUI
+    depends_on:
+      spark-master:
+        condition: service_started
+      r-processing:
+        condition: service_completed_successfully
+    restart: on-failure
   spark-master:
-    image: bitnami/spark:3.4
+    build:
+      context: ./spark-processing
     ports:
-      - "8080:8080"
+      - "8081:8080"
       - "7077:7077"
     volumes:
-      - ./spark-processing:/app # Seu codigo Spark vai aqui
-      - ./data:/data # Onde os dados processados pelo R e gerados pelo generator estão
+      - ./data:/data
     environment:
       SPARK_MODE: master
     depends_on:
       r-processing:
-        # Spark precisa dos dados processados pelo R
         condition: service_completed_successfully
     restart: unless-stopped
 
   spark-worker:
-    image: bitnami/spark:3.4
+    build:
+      context: ./spark-processing
     depends_on:
       - spark-master
     environment:
       SPARK_MODE: worker
-      SPARK_MASTER_URL: "spark://spark-master:7077"
+      SPARK_MASTER_URL: spark://spark-master:7077
     volumes:
-      - ./spark-processing:/app
       - ./data:/data
     restart: unless-stopped
 
@@ -92,12 +122,18 @@ services:
     build: ./web-dashboard
     ports:
       - "5000:5000"
+    volumes:
+      - ./web-dashboard:/app
+      - ./data:/app/shared_data
     depends_on:
       data-warehouse:
-        # O dashboard depende do DW estar populado
         condition: service_completed_successfully
       postgres:
         condition: service_healthy
+      spark-submit-job:
+        condition: service_completed_successfully
+      clustering-analysis:
+        condition: service_completed_successfully
     restart: unless-stopped
 
 volumes:

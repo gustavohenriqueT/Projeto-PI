@@ -1,141 +1,189 @@
 import numpy as np
+import matplotlib
+matplotlib.use('Agg') # Usar backend não interativo para matplotlib em scripts
 import matplotlib.pyplot as plt
 from pyspark.sql import SparkSession
 from pyspark.ml.feature import VectorAssembler
 from pyspark.ml.classification import DecisionTreeClassifier
 from pyspark.ml.evaluation import MulticlassClassificationEvaluator, BinaryClassificationEvaluator
 from pyspark.ml.classification import DecisionTreeClassificationModel
-import os # Adicionado para lidar com caminhos de arquivo local
+import os 
+import json # Adicionado para salvar métricas
 
 # Criar uma sessão Spark
-spark = SparkSession.builder.appName("Modelo_Transito").master("local[*]").getOrCreate()
+spark = SparkSession.builder.appName("Modelo_Transito_Classificacao").master("local[*]").getOrCreate()
 
 # Importando o csv processado pelo R
-# Caminho dentro do container Spark
-csv_path = "/data/transport_dataL.csv" # O volume './data' está montado como '/data' no Spark
+csv_path = "/data/transport_dataL.csv" 
 df = spark.read.csv(csv_path, header=True, inferSchema=True)
 
-# Verificando se o DataFrame está vazio após a leitura
 if df.count() == 0:
-    print(f"Erro: O arquivo {csv_path} está vazio ou não pôde ser lido. Verifique o processamento R.")
+    print(f"ERRO: Arquivo de entrada '{csv_path}' está vazio ou não pôde ser lido. Verifique o processamento R.")
     spark.stop()
     exit(1)
 
-# Registrando o df como uma tabela temporária chamada "trânsito"
 df.createOrReplaceTempView("transito")
 
-# Filtrando a tabela df para exibir apenas as viagens em horário de pico utilizando SQL
-print("Consultando as viagens presentes apenas nos horários de pico")
-df_sql = spark.sql("SELECT * FROM transito WHERE `horario_pico` = 1") # Coluna 'horario_pico' é minúscula após R
-df_sql.show(5)
+print("Amostra dos dados carregados para Spark:")
+df.show(5, truncate=False)
 
-# Determinando as colunas numéricas do modelo como colunas features
 colunas_features = [
-    "tempo_viagem_minutos", # Coluna 'tempo_viagem_minutos' é minúscula após R
-    "hora",                 # Coluna 'hora' é minúscula após R
-    "latitude",             # Coluna 'latitude' é minúscula após R
-    "longitude"             # Coluna 'longitude' é minúscula após R
+    "tempo_viagem_minutos", 
+    "hora",                 
+    "latitude",             
+    "longitude"             
 ]
+# Verificar se as colunas existem
+for col_check in colunas_features + ["horario_pico"]: # Renomeado para evitar conflito com a variável 'col' no loop abaixo
+    if col_check not in df.columns:
+        print(f"ERRO: Coluna '{col_check}' esperada não encontrada no DataFrame. Colunas disponíveis: {df.columns}")
+        spark.stop()
+        exit(1)
 
-# Classificação: prever se é horário de pico ou não
-# Certificar-se de que as colunas existem e não são nulas
 df_clt = df.select(*colunas_features, "horario_pico").dropna()
+if df_clt.count() == 0:
+    print("ERRO: DataFrame para classificação ficou vazio após dropna. Verifique os dados de entrada.")
+    spark.stop()
+    exit(1)
+
 assember_clf = VectorAssembler(inputCols=colunas_features, outputCol="features")
 df_clt = assember_clf.transform(df_clt).withColumnRenamed("horario_pico", "label")
 
-# Treina o modelo de Árvore de Decisão
-clf = DecisionTreeClassifier(labelCol="label", featuresCol="features")
-modelo_clf = clf.fit(df_clt)
+# Modelo treinado com todos os dados (para importância das features)
+print("Treinando modelo de classificação com todos os dados (para feature importance)...")
+clf_all_data = DecisionTreeClassifier(labelCol="label", featuresCol="features", seed=42)
+modelo_clf_all_data = clf_all_data.fit(df_clt)
+previsoes_clf_treino_completo = modelo_clf_all_data.transform(df_clt) 
 
-# Fazer precisões
-previsoes_clf = modelo_clf.transform(df_clt)
+avaliador_multi = MulticlassClassificationEvaluator(labelCol="label", predictionCol="prediction", metricName="accuracy")
+acuracia_treino_completo = avaliador_multi.evaluate(previsoes_clf_treino_completo) 
+print(f"Acurácia (treino com todos os dados): {acuracia_treino_completo:.2%}")
 
-# Avaliar a acurácia do modelo
-avaliador_clf = MulticlassClassificationEvaluator(labelCol="label", predictionCol="prediction", metricName="accuracy")
-acuracia = avaliador_clf.evaluate(previsoes_clf)
-print(f"Acurácia: {acuracia: .2%}")
+print("Exemplos de previsões do modelo (treino com todos os dados):")
+previsoes_clf_treino_completo.select("features", "label", "prediction").show(5, truncate=False)
 
-# Mostrar exemplos de previsão do modelo
-print("Exemplos de previsões do modelo:")
-previsoes_clf.select("features", "label", "prediction").show(5, truncate=False)
-
-# Medir a importância relativa de cada variável (feature) usada para treinar o modelo
-importancia = modelo_clf.featureImportances
+importancia = modelo_clf_all_data.featureImportances
 importancia_array = importancia.toArray()
 
-# Gerando gráficos com barras horizontais demonstrando a importância de cada features
 plt.figure(figsize=(10, 6))
 plt.barh(colunas_features, importancia_array)
 plt.xlabel("Importância")
 plt.ylabel("Características")
-plt.title("Importância das Características")
-plt.savefig("/data/feature_importances.png") # Salva o gráfico no volume compartilhado
-plt.close() # Fecha a figura para liberar memória
-print("Gráfico de Importância das Características salvo em /data/feature_importances.png")
+plt.title("Importância das Características (Modelo Treinado com Todos os Dados)")
+OUTPUT_FEATURE_IMPORTANCE_PATH = "/data/feature_importances.png" 
+try:
+    plt.savefig(OUTPUT_FEATURE_IMPORTANCE_PATH) 
+    plt.close() 
+    print(f"Gráfico de Importância das Características salvo em {OUTPUT_FEATURE_IMPORTANCE_PATH}")
+except Exception as e:
+    print(f"Erro ao salvar gráfico de importância: {e}")
 
-# Dividindo o df em 80% para treino e 20% para teste
-# Garantir que o dataset balanceado tenha dados
-if df_clt.filter("label = 1").count() == 0 or df_clt.filter("label = 0").count() == 0:
-    print("Aviso: Dados insuficientes para balanceamento de classes. Treinando com dataset original.")
-    train_data, test_data = df_clt.randomSplit([0.8, 0.2], seed=42)
-else:
-    # Número de registros da classe 1
-    n_positivos = df_clt.filter("label = 1").count()
-    # Amostra da classe 0 do mesmo tamanho que a classe 1 (ajustar a proporção se necessário)
-    # O divisor 35691 parece ser um número mágico, talvez baseado no seu dataset Colab.
-    # É melhor calcular a proporção dinamicamente ou usar um oversampling/undersampling adequado.
-    # Por simplicidade, vamos usar 1 como divisor se for um caso binário e balanceado.
-    # Se for para undersample da classe 0, precisa da proporção de n_positivos / total_negativos
 
-    # Correção para o balanceamento:
-    n_negativos = df_clt.filter("label = 0").count()
-    if n_negativos > 0:
-        sample_fraction_negativos = n_positivos / n_negativos
+# Divisão treino/teste e balanceamento
+train_data, test_data = None, None 
+acuracia_teste_balanceado = "N/A" # Default como string
+auc_teste_balanceado = "N/A" # Default como string
+
+n_positivos = df_clt.filter("label = 1").count()
+n_negativos = df_clt.filter("label = 0").count()
+
+if n_positivos == 0 or n_negativos == 0:
+    print("AVISO: Dados insuficientes para balanceamento de classes (uma ou ambas as classes têm 0 registros).")
+    print("Prosseguindo com divisão treino/teste no dataset original desbalanceado, se tiver dados suficientes.")
+    if df_clt.count() >= 2: 
+         train_data, test_data = df_clt.randomSplit([0.8, 0.2], seed=42)
     else:
-        sample_fraction_negativos = 1.0 # Evita divisao por zero, mas implica que nao havera negativos se n_negativos for 0
-
-    df_negativos = df_clt.filter("label = 0").sample(False, sample_fraction_negativos, seed=42)
+        print("ERRO: Não há dados suficientes em df_clt para dividir em treino/teste.")
+else:
+    print(f"Balanceando classes: {n_positivos} positivos, {n_negativos} negativos.")
     df_positivos = df_clt.filter("label = 1")
-    df_balanceado = df_positivos.unionAll(df_negativos) # Use unionAll para evitar distinct que pode ser lento
+    df_negativos = df_clt.filter("label = 0")
 
-    # Continue com o treino normalmente
-    train_data, test_data = df_balanceado.randomSplit([0.8, 0.2], seed=42)
+    df_balanceado = None
+    if n_negativos > n_positivos: 
+        sample_fraction = n_positivos / n_negativos
+        df_negativos_amostrados = df_negativos.sample(False, sample_fraction, seed=42)
+        df_balanceado = df_positivos.unionAll(df_negativos_amostrados)
+        print(f"Realizado undersampling da classe negativa. Fração: {sample_fraction:.4f}")
+    elif n_positivos > n_negativos and n_negativos > 0 : # Adicionado n_negativos > 0
+        ratio = int(n_positivos / n_negativos) 
+        df_oversampled_negatives = df_negativos
+        for _ in range(1, ratio):
+             df_oversampled_negatives = df_oversampled_negatives.unionAll(df_negativos)
+        df_balanceado = df_positivos.unionAll(df_oversampled_negatives.limit(n_positivos)) 
+        print(f"Realizado oversampling (aproximado) da classe negativa.")
+    else: 
+        df_balanceado = df_clt
+        print("Classes já parecem balanceadas ou não foi possível realizar oversampling/undersampling.")
+
+    if df_balanceado and df_balanceado.count() > 0: # Checa se df_balanceado não é None e tem dados
+        print(f"Dataset após tentativa de balanceamento: {df_balanceado.count()} registros.")
+        train_data, test_data = df_balanceado.randomSplit([0.8, 0.2], seed=42)
+    else:
+        print("ERRO: Dataset ficou vazio ou não foi possível balancear. Usando split original se possível.")
+        if df_clt.count() >=2:
+             train_data, test_data = df_clt.randomSplit([0.8, 0.2], seed=42) # Fallback
 
 
-# Treina com os dados de treino
-modelo_ist = clf.fit(train_data)
+modelo_final_para_salvar = modelo_clf_all_data 
 
-# Avalia com os dados de teste
-previsoes_clf = modelo_ist.transform(test_data)
-acuracia_clf = avaliador_clf.evaluate(previsoes_clf)
-print(f"Acurácia do modelo IST: {acuracia_clf:.2%}")
+if train_data and test_data and train_data.count() > 0 and test_data.count() > 0:
+    print(f"Treinando modelo com dados de treino (após balanceamento/split): {train_data.count()} registros")
+    clf_balanceado = DecisionTreeClassifier(labelCol="label", featuresCol="features", seed=123) 
+    modelo_treinado = clf_balanceado.fit(train_data)
+    modelo_final_para_salvar = modelo_treinado 
+    
+    print(f"Avaliando com dados de teste (após balanceamento/split): {test_data.count()} registros")
+    previsoes_teste = modelo_treinado.transform(test_data)
+    
+    acuracia_teste_balanceado = avaliador_multi.evaluate(previsoes_teste)
+    print(f"Acurácia (teste com dados balanceados/divididos): {acuracia_teste_balanceado:.2%}")
 
-avaliador_auc = BinaryClassificationEvaluator(labelCol="label", rawPredictionCol="rawPrediction", metricName="areaUnderROC")
-auc = avaliador_auc.evaluate(previsoes_clf)
-print(f"AUC (Área sob a curva ROC): {auc:.2%}")
+    distinct_predictions = previsoes_teste.select("prediction").distinct().count()
+    if distinct_predictions > 1:
+        avaliador_auc = BinaryClassificationEvaluator(labelCol="label", rawPredictionCol="rawPrediction", metricName="areaUnderROC")
+        auc_teste_balanceado = avaliador_auc.evaluate(previsoes_teste)
+        print(f"AUC (teste com dados balanceados/divididos): {auc_teste_balanceado:.2%}")
+    else:
+        print("AUC não calculado: modelo prevê apenas uma classe nos dados de teste.")
+        auc_teste_balanceado = "N/A (predição unária)"
+else:
+    print("AVISO: Divisão treino/teste resultou em dataset(s) vazio(s) ou o balanceamento falhou. Algumas métricas de teste não serão calculadas.")
 
-# Avalia com os dados de teste (já feito acima, mas mantido para clareza se quiser métricas separadas do treino/teste split)
-previsoes_teste = modelo_clf.transform(test_data)
-acuracia_teste = avaliador_clf.evaluate(previsoes_teste)
-print(f"Acurácia nos dados de teste: {acuracia_teste: .2%}")
 
-# Salva o modelo treinado para a computação distribuída
-# O caminho deve ser um diretório acessível e vazio ou ser sobrescrito
-model_path = "/data/modelo_treinado_transito" # Salva no volume compartilhado
-modelo_clf.write().overwrite().save(model_path)
-print(f"Modelo salvo em: {model_path}")
+MODEL_PATH = "/data/modelo_classificacao_horario_pico_dt" 
+try:
+    modelo_final_para_salvar.write().overwrite().save(MODEL_PATH)
+    print(f"Modelo de classificação salvo em: {MODEL_PATH}")
+except Exception as e:
+    print(f"Erro ao salvar modelo de classificação: {e}")
 
-# Simulando a execução em outro local (carregando o modelo salvo)
-# Carregar o modelo salvo
-modelo_carregado = DecisionTreeClassificationModel.load(model_path)
+acuracia_carregada = "N/A"
+try:
+    modelo_carregado = DecisionTreeClassificationModel.load(MODEL_PATH)
+    if test_data and test_data.count() > 0:
+        previsoes_carregada = modelo_carregado.transform(test_data) 
+        acuracia_carregada = avaliador_multi.evaluate(previsoes_carregada)
+        print(f"Acurácia do modelo carregado (no mesmo conjunto de teste): {acuracia_carregada:.2%}")
+    else:
+        print("Modelo carregado, mas não há dados de teste para avaliar.")
+except Exception as e:
+    print(f"Erro ao carregar ou testar o modelo salvo: {e}")
 
-# Fazer previsões
-previsoes_carregada = modelo_carregado.transform(df_clt)
+metrics_to_save = {
+    "acuracia_treino_completo_desbalanceado": acuracia_treino_completo if isinstance(acuracia_treino_completo, float) else "N/A",
+    "acuracia_teste_balanceado_ou_split": acuracia_teste_balanceado if isinstance(acuracia_teste_balanceado, float) else "N/A",
+    "auc_teste_balanceado_ou_split": auc_teste_balanceado if isinstance(auc_teste_balanceado, float) else auc_teste_balanceado, # Mantém string "N/A..."
+    "acuracia_modelo_carregado_no_teste": acuracia_carregada if isinstance(acuracia_carregada, float) else "N/A"
+}
 
-# Avaliar a acurácia
-acuracia_carregada = avaliador_clf.evaluate(previsoes_carregada)
-print(f"Acurácia do modelo carregado: {acuracia_carregada:.2%}")
+OUTPUT_METRICS_JSON_PATH = "/data/ml_classification_metrics.json"
+try:
+    with open(OUTPUT_METRICS_JSON_PATH, 'w') as f:
+        json.dump(metrics_to_save, f, indent=4)
+    print(f"Métricas de Classificação salvas em: {OUTPUT_METRICS_JSON_PATH}")
+except Exception as e:
+    print(f"Erro ao salvar métricas de classificação em JSON: {e}")
 
-# Encerrar o Spark
 spark.stop()
 print("Spark Session encerrada.")
