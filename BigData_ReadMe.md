@@ -110,4 +110,4 @@ Consultas realizadas diretamente no Data Warehouse.
 - Explorar modelos de **séries temporais** (ex: ARIMA, Prophet).
 - Implementar **dashboards em tempo real** com:
   - Apache Superset
-  - Power BI
+  - Power BI 
