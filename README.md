@@ -14,7 +14,7 @@
 
 Este projeto tem como objetivo analisar grandes volumes de dados sobre o transporte público de uma cidade, utilizando técnicas de Big Data para identificar padrões de uso, horários de pico, eficiência das rotas e possíveis melhorias no sistema.
 
-Utilizando Python, R, MongoDB, Ansible e Docker, processaremos dados de GPS dos ônibus, registros de bilhetagem eletrônica e dados abertos da prefeitura para criar visualizações e relatórios que possam auxiliar na tomada de decisões.
+Utilizando Python, R, Postgree e Docker, processaremos dados de GPS dos ônibus, registros de bilhetagem eletrônica e dados abertos da prefeitura para criar visualizações e relatórios que possam auxiliar na tomada de decisões.
 
 ## Principais Funcionalidades
 
@@ -24,7 +24,7 @@ Utilizando Python, R, MongoDB, Ansible e Docker, processaremos dados de GPS dos 
 - Informações meteorológicas para cruzamento com padrões de transporte.
 
 ### Armazenamento e Processamento:
-- Utilização do MongoDB para armazenar grandes volumes de dados não estruturados.
+- Utilização do Postgree para armazenar grandes volumes de dados não estruturados.
 - Tratamento e análise de dados com Python e R.
 - Implementação de pipelines automatizados com Ansible e Docker.
 - Aplicação de técnicas de Big Data para identificar padrões.
