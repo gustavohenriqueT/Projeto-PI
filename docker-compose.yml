@@ -2,14 +2,14 @@ version: '3.8'
 
 services:
   jenkins:
-    build: ./jenkins # Certifique-se que esta pasta contém o Dockerfile acima
+    build: ./jenkins
     ports:
-      - "18080:8080" # Porta para acessar a UI do Jenkins
-      - "50000:50000" # Porta para agentes Jenkins, se necessário
+      - "18080:8080"
+      - "50000:50000"
     volumes:
-      - jenkins_data:/var/jenkins_home # Persistência dos dados do Jenkins
-      - /var/run/docker.sock:/var/run/docker.sock # Permite que o Jenkins controle o Docker do host
-      - .:/app/projeto-pi # Monta a raiz do projeto dentro do contêiner Jenkins (para acesso ao docker-compose.yml)
+      - jenkins_data:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+      - .:/app/projeto-pi
     restart: unless-stopped
 
   postgres:
@@ -91,6 +91,7 @@ services:
       r-processing:
         condition: service_completed_successfully
     restart: on-failure
+
   spark-master:
     build:
       context: ./spark-processing
@@ -119,6 +120,7 @@ services:
     restart: unless-stopped
 
   web-dashboard:
+    # Seu dashboard Dash existente
     build: ./web-dashboard
     ports:
       - "5000:5000"
@@ -136,6 +138,25 @@ services:
         condition: service_completed_successfully
     restart: unless-stopped
 
+  grafana:
+    # <-- NOVO SERVIÇO GRAFANA
+    image: grafana/grafana-oss:latest # Ou uma versão específica como grafana/grafana-oss:9.5.16
+    ports:
+      - "3000:3000" # Porta padrão do Grafana
+    volumes:
+      - grafana_data:/var/lib/grafana # Para persistir dados e dashboards do Grafana
+      # Opcional: Para provisionar DataSources e Dashboards automaticamente via arquivos
+      # - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
+      # - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin # IMPORTANTE: Mude esta senha em um ambiente de produção!
+      # - GF_INSTALL_PLUGINS= # Adicione plugins do Grafana aqui, se necessário (ex: grafana-worldmap-panel)
+    restart: unless-stopped
+    depends_on:
+      - postgres # Garante que o Postgres esteja idealmente disponível antes do Grafana tentar conectar
+
 volumes:
   jenkins_data:
   postgres_data:
+  grafana_data: # <-- NOVO VOLUME PARA O GRAFANA
