@@ -34,7 +34,7 @@ colunas_features = [
     "longitude"             
 ]
 # Verificar se as colunas existem
-for col_check in colunas_features + ["horario_pico"]: # Renomeado para evitar conflito com a variável 'col' no loop abaixo
+for col_check in colunas_features + ["horario_pico"]:
     if col_check not in df.columns:
         print(f"ERRO: Coluna '{col_check}' esperada não encontrada no DataFrame. Colunas disponíveis: {df.columns}")
         spark.stop()
@@ -81,8 +81,8 @@ except Exception as e:
 
 # Divisão treino/teste e balanceamento
 train_data, test_data = None, None 
-acuracia_teste_balanceado = "N/A" # Default como string
-auc_teste_balanceado = "N/A" # Default como string
+acuracia_teste_balanceado = "N/A" 
+auc_teste_balanceado = "N/A" 
 
 n_positivos = df_clt.filter("label = 1").count()
 n_negativos = df_clt.filter("label = 0").count()
@@ -105,7 +105,7 @@ else:
         df_negativos_amostrados = df_negativos.sample(False, sample_fraction, seed=42)
         df_balanceado = df_positivos.unionAll(df_negativos_amostrados)
         print(f"Realizado undersampling da classe negativa. Fração: {sample_fraction:.4f}")
-    elif n_positivos > n_negativos and n_negativos > 0 : # Adicionado n_negativos > 0
+    elif n_positivos > n_negativos and n_negativos > 0 : 
         ratio = int(n_positivos / n_negativos) 
         df_oversampled_negatives = df_negativos
         for _ in range(1, ratio):
