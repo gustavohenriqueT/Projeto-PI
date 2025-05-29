@@ -84,7 +84,7 @@ services:
       context: ./spark-processing
     volumes:
       - ./data:/data
-    command: [ "spark-submit", "--master", "spark://spark-master:7077", "/app/spark_analysis.py" ] # <--- MUDANÇA AQUI
+    command: [ "spark-submit", "--master", "spark://spark-master:7077", "/app/spark_analysis.py" ]
     depends_on:
       spark-master:
         condition: service_started
