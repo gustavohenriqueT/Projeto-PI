@@ -167,11 +167,15 @@ def update_dropdown_options(db_status):
     except Exception as e:
         print(f"Erro ao carregar linhas para dropdown: {e}"); return []
 
-@app.callback(
-    [Output('map-plot', 'figure'), Output('passengers-plot', 'figure'),
-     Output('cluster-plot', 'figure'), Output('trips-plot', 'figure'),
-     Output('trip-time-plot', 'figure'), Output('last-update', 'children'),
-     Output('graphs-row-1', 'hidden'), Output('graphs-row-2', 'hidden'), Output('graphs-row-3', 'hidden')],
+@app.callback([
+    Output('map-plot', 'figure'),
+    Output('passengers-plot', 'figure'),
+    Output('cluster-plot', 'figure'),
+    Output('trips-plot', 'figure'),
+    Output('last-update', 'children'),
+    Output('graphs-row-1', 'hidden'),
+    Output('graphs-row-2', 'hidden')
+],
     [Input('line-selector', 'value'), Input('database-status', 'data')]
 )
 def update_all_graphs(selected_lines, db_status):
