@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS transport_data (
     tempo_viagem_minutos INTEGER,
     hora INTEGER,
     horario_pico BOOLEAN,
+    situacao VARCHAR(50),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
