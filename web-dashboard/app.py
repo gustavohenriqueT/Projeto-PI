@@ -179,7 +179,6 @@ def update_all_graphs(selected_lines, db_status):
         return (no_update,) * 5 + (no_update,) + (True,) * 3 
 
     fig_layout_defaults = {'plot_bgcolor': 'white', 'paper_bgcolor': 'white'}
-    # Não inclui 'overwrite' aqui, Pylance não deve reclamar.
     empty_fig_placeholder_layout = {**fig_layout_defaults, 'xaxis': {'visible': False}, 'yaxis': {'visible': False}}
     
     title_sem_dados = "Sem dados disponíveis para a seleção atual."
