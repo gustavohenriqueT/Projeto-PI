@@ -1,162 +1,157 @@
-version: '3.8'
+version: '3.8' # Define a versão do Docker Compose
 
 services:
   jenkins:
-    build: ./jenkins
+    build: ./jenkins # Especifica o diretório onde o Dockerfile do Jenkins está localizado
     ports:
-      - "18080:8080"
-      - "50000:50000"
+      - "18080:8080" # Mapeia a porta 18080 do host para a porta 8080 do Jenkins
+      - "50000:50000" # Mapeia a porta 50000 do host para comunicação remota com o Jenkins
     volumes:
-      - jenkins_data:/var/jenkins_home
-      - /var/run/docker.sock:/var/run/docker.sock
-      - .:/app/projeto-pi
-    restart: unless-stopped
+      - jenkins_data:/var/jenkins_home # Volume persistente para dados do Jenkins
+      - /var/run/docker.sock:/var/run/docker.sock # Permite que o Jenkins controle o Docker
+      - .:/app/projeto-pi # Mapeia o diretório do projeto para o contêiner
+    restart: unless-stopped # Reinicia o contêiner a menos que explicitamente parado
 
   postgres:
-    image: postgres:13
+    image: postgres:13 # Usa a imagem oficial do PostgreSQL versão 13
     environment:
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: transport_db
+      POSTGRES_USER: admin # Usuário padrão do PostgreSQL
+      POSTGRES_PASSWORD: password # Senha padrão do PostgreSQL
+      POSTGRES_DB: transport_db # Nome do banco de dados a ser criado
     volumes:
-      - ./data-warehouse/init.sql:/docker-entrypoint-initdb.d/init.sql
-      - postgres_data:/var/lib/postgresql/data
+      - ./data-warehouse/init.sql:/docker-entrypoint-initdb.d/init.sql # Executa o script de inicialização
+      - postgres_data:/var/lib/postgresql/data # Volume persistente para dados do PostgreSQL
     ports:
-      - "5432:5432"
-    restart: unless-stopped
+      - "5432:5432" # Mapeia a porta padrão do PostgreSQL
+    restart: unless-stopped # Reinicia o contêiner a menos que explicitamente parado
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U admin -d transport_db" ]
-      interval: 5s
-      timeout: 5s
-      retries: 10
+      # Verifica a saúde do contêiner de PostgreSQL
+      test: [ "CMD-SHELL", "pg_isready -U admin -d transport_db" ] # Comando para checar se o banco está pronto
+      interval: 5s # Intervalo entre as verificações
+      timeout: 5s # Tempo máximo para a verificação
+      retries: 10 # Número de tentativas antes de considerar como falha
 
   data-generator:
-    build: ./data-generator
+    build: ./data-generator # Especifica o caminho do Dockerfile
     volumes:
-      - ./data:/app/data
+      - ./data:/app/data # Mapeia o diretório de dados
     depends_on:
       postgres:
-        condition: service_healthy
-    restart: on-failure
+        condition: service_healthy # Espera o PostgreSQL ficar saudável antes de iniciar
+    restart: on-failure # Reinicia em caso de falha
 
   r-processing:
-    build: ./r-processing
+    build: ./r-processing # Especifica o caminho do Dockerfile
     volumes:
-      - ./data:/app/data
+      - ./data:/app/data # Mapeia o diretório de dados
     depends_on:
       data-generator:
-        condition: service_completed_successfully
-    restart: on-failure
+        condition: service_completed_successfully # Espera o data-generator completar
+    restart: on-failure # Reinicia em caso de falha
 
   data-warehouse:
-    build: ./data-warehouse
+    build: ./data-warehouse # Especifica o caminho do Dockerfile
     volumes:
-      - ./data:/app/data
+      - ./data:/app/data # Mapeia o diretório de dados
     depends_on:
       r-processing:
-        condition: service_completed_successfully
-    restart: on-failure
+        condition: service_completed_successfully # Espera o r-processing completar
+    restart: on-failure # Reinicia em caso de falha
 
   hadoop-simulations:
     build:
-      context: ./spark-processing
+      context: ./spark-processing # Especifica o caminho do Dockerfile
     volumes:
-      - ./data:/data
-    command: python hadoop_simulations.py
+      - ./data:/data # Mapeia o diretório de dados
+    command: python hadoop_simulations.py # Comando a ser executado
     depends_on:
       r-processing:
-        condition: service_completed_successfully
-    restart: on-failure
+        condition: service_completed_successfully # Espera o r-processing completar
+    restart: on-failure # Reinicia em caso de falha
 
   clustering-analysis:
     build:
-      context: ./spark-processing
+      context: ./spark-processing # Especifica o caminho do Dockerfile
     volumes:
-      - ./data:/data
-    command: python clustering_analysis.py
+      - ./data:/data # Mapeia o diretório de dados
+    command: python clustering_analysis.py # Comando a ser executado
     depends_on:
       r-processing:
-        condition: service_completed_successfully
-    restart: on-failure
+        condition: service_completed_successfully # Espera o r-processing completar
+    restart: on-failure # Reinicia em caso de falha
 
   spark-submit-job:
     build:
-      context: ./spark-processing
+      context: ./spark-processing # Especifica o caminho do Dockerfile
     volumes:
-      - ./data:/data
-    command: [ "spark-submit", "--master", "spark://spark-master:7077", "/app/spark_analysis.py" ]
+      - ./data:/data # Mapeia o diretório de dados
+    command: [ "spark-submit", "--master", "spark://spark-master:7077", "/app/spark_analysis.py" ] # Comando para executar job Spark
     depends_on:
       spark-master:
-        condition: service_started
+        condition: service_started # Espera o Spark Master iniciar
       r-processing:
-        condition: service_completed_successfully
-    restart: on-failure
+        condition: service_completed_successfully # Espera o r-processing completar
+    restart: on-failure # Reinicia em caso de falha
 
   spark-master:
     build:
-      context: ./spark-processing
+      context: ./spark-processing # Especifica o caminho do Dockerfile
     ports:
-      - "8081:8080"
-      - "7077:7077"
+      - "8081:8080" # Mapeia a porta do Spark Master
+      - "7077:7077" # Mapeia a porta para comunicação com os workers
     volumes:
-      - ./data:/data
+      - ./data:/data # Mapeia o diretório de dados
     environment:
-      SPARK_MODE: master
+      SPARK_MODE: master # Define o modo do Spark
     depends_on:
       r-processing:
-        condition: service_completed_successfully
-    restart: unless-stopped
+        condition: service_completed_successfully # Espera o r-processing completar
+    restart: unless-stopped # Reinicia a menos que explicitamente parado
 
   spark-worker:
     build:
-      context: ./spark-processing
+      context: ./spark-processing # Especifica o caminho do Dockerfile
     depends_on:
-      - spark-master
+      - spark-master # Espera o Spark Master iniciar
     environment:
-      SPARK_MODE: worker
-      SPARK_MASTER_URL: spark://spark-master:7077
+      SPARK_MODE: worker # Define o modo do Spark como worker
+      SPARK_MASTER_URL: spark://spark-master:7077 # URL do Spark Master
     volumes:
-      - ./data:/data
-    restart: unless-stopped
+      - ./data:/data # Mapeia o diretório de dados
+    restart: unless-stopped # Reinicia a menos que explicitamente parado
 
   web-dashboard:
-    # Seu dashboard Dash existente
-    build: ./web-dashboard
+    build: ./web-dashboard # Especifica o caminho do Dockerfile do dashboard
     ports:
-      - "5000:5000"
+      - "5000:5000" # Mapeia a porta do dashboard
     volumes:
-      - ./web-dashboard:/app
-      - ./data:/app/shared_data
+      - ./web-dashboard:/app # Mapeia o diretório do dashboard
+      - ./data:/app/shared_data # Mapeia o diretório de dados
     depends_on:
       data-warehouse:
-        condition: service_completed_successfully
+        condition: service_completed_successfully # Espera o data-warehouse completar
       postgres:
-        condition: service_healthy
+        condition: service_healthy # Espera o PostgreSQL ficar saudável
       spark-submit-job:
-        condition: service_completed_successfully
+        condition: service_completed_successfully # Espera o job Spark completar
       clustering-analysis:
-        condition: service_completed_successfully
-    restart: unless-stopped
+        condition: service_completed_successfully # Espera a análise de agrupamento completar
+    restart: unless-stopped # Reinicia a menos que explicitamente parado
 
   grafana:
-    # <-- NOVO SERVIÇO GRAFANA
-    image: grafana/grafana-oss:latest # Ou uma versão específica como grafana/grafana-oss:9.5.16
+    image: grafana/grafana-oss:latest # Usa a imagem mais recente do Grafana
     ports:
-      - "3000:3000" # Porta padrão do Grafana
+      - "3000:3000" # Mapeia a porta padrão do Grafana
     volumes:
-      - grafana_data:/var/lib/grafana # Para persistir dados e dashboards do Grafana
-      # Opcional: Para provisionar DataSources e Dashboards automaticamente via arquivos
-      # - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
-      # - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards
+      - grafana_data:/var/lib/grafana # Volume persistente para dados e dashboards do Grafana
     environment:
-      - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=admin # IMPORTANTE: Mude esta senha em um ambiente de produção!
-      # - GF_INSTALL_PLUGINS= # Adicione plugins do Grafana aqui, se necessário (ex: grafana-worldmap-panel)
-    restart: unless-stopped
+      - GF_SECURITY_ADMIN_USER=admin # Define o usuário admin do Grafana
+      - GF_SECURITY_ADMIN_PASSWORD=admin # Define a senha admin do Grafana
+    restart: unless-stopped # Reinicia a menos que explicitamente parado
     depends_on:
-      - postgres # Garante que o Postgres esteja idealmente disponível antes do Grafana tentar conectar
+      - postgres # Garante que o PostgreSQL esteja disponível antes do Grafana tentar conectar
 
 volumes:
-  jenkins_data:
-  postgres_data:
-  grafana_data: # <-- NOVO VOLUME PARA O GRAFANA
+  jenkins_data: # Volume persistente para Jenkins
+  postgres_data: # Volume persistente para PostgreSQL
+  grafana_data: # Volume persistente para dados e dashboards do Grafana
