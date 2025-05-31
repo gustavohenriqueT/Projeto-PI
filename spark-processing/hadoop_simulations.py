@@ -87,7 +87,7 @@ if 'id_veiculo' in df.columns and 'tempo_viagem_minutos' in df.columns and 'hora
         # Tenta primeiro como numérico/booleano que pode ser comparado com 0
         print(df_hive_sim.query("horario_pico == 0").head())
     except pd.errors.UndefinedVariableError:
-         # Se 'horario_pico' não puder ser diretamente usado em query (raro para colunas simples)
+         # Se 'horario_pico' não puder ser diretamente usado em query
          # ou se a comparação com 0 falhar devido ao tipo, tente com False
         print(df_hive_sim[df_hive_sim['horario_pico'] == False].head())
     except Exception as e_hive:
@@ -137,7 +137,7 @@ if 'numero_passageiros' in df.columns and 'tempo_viagem_minutos' in df.columns a
 
     for i, row in df_hbase_sample.iterrows(): 
         try:
-            # Chave única com base no índice original do DataFrame (se disponível e útil) ou um novo índice
+            # Chave única com base no índice original do DataFrame ou um novo índice
             # Usando o índice do df_hbase_sample que é de 0 a N-1 para a amostra
             row_key = f"viagem_info:{i}" 
             hbase_sim[row_key] = {
@@ -179,10 +179,6 @@ if 'numero_passageiros' in df.columns and 'tempo_viagem_minutos' in df.columns a
             
             print(f"Simulação Sqoop: Dados exportados para '{OUTPUT_HDFS_SIM_PATH}'")
             
-            # Opcional: Ler de volta para verificar
-            # df_hdfs_check = pd.read_csv(OUTPUT_HDFS_SIM_PATH)
-            # print("Conteúdo do arquivo HDFS simulado (primeiras linhas):")
-            # print(df_hdfs_check.head())
         except Exception as e_sqoop:
             print(f"Erro durante a simulação Sqoop: {e_sqoop}")
         finally:
