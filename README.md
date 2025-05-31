@@ -14,7 +14,7 @@
 
 Este projeto tem como objetivo analisar grandes volumes de dados sobre o transporte público de uma cidade, utilizando técnicas de Big Data para identificar padrões de uso, horários de pico, eficiência das rotas e possíveis melhorias no sistema.
 
-Utilizando Python, R, Postgree e Docker, processaremos dados de GPS dos ônibus, registros de bilhetagem eletrônica e dados abertos da prefeitura para criar visualizações e relatórios que possam auxiliar na tomada de decisões.
+Utilizando Python, R, Postgree e Docker, processaremos de dados simulado para criar visualizações e relatórios que possam auxiliar na tomada de decisões.
 
 ## Principais Funcionalidades
 
