@@ -70,3 +70,104 @@ Utilizando Python, R, Postgree e Docker, processaremos dados de GPS dos ônibus,
 - Seaborn
 - ggplot2
 
+## 🚀 Como Instalar e Executar o Projeto
+
+Este projeto utiliza **Docker** e **Docker Compose** para orquestrar diversos serviços de forma consistente.
+
+### ✅ Pré-requisitos
+
+Antes de começar, instale:
+
+- [Docker Engine](https://docs.docker.com/engine/install/)
+- [Docker Compose](https://docs.docker.com/compose/install/)
+- [Git](https://git-scm.com/)
+- Editor de código (VS Code, Sublime, etc.)
+- Navegador Web (Chrome, Firefox, etc.)
+
+---
+
+### 📁 1. Clonar o Repositório
+
+```bash
+git clone https://github.com/gustavohenriqueT/Projeto-PI.git
+cd Projeto-PI
+```
+
+---
+
+### 🔐 2. Variáveis de Ambiente (Opcional)
+
+Se necessário, crie um arquivo `.env` na raiz do projeto para configurar variáveis sensíveis. Neste projeto, credenciais padrão estão no `docker-compose.yml` apenas para desenvolvimento.
+
+---
+
+### 🏗️ 3. Construir e Iniciar os Serviços
+
+Execute na raiz do projeto:
+
+```bash
+docker-compose up --build -d
+```
+
+- `--build`: Reconstrói as imagens.
+- `-d`: Executa os serviços em segundo plano.
+
+---
+
+### 🌐 4. Acessar os Serviços
+
+| Serviço                  | URL/Info                                      |
+|--------------------------|-----------------------------------------------|
+| **Dashboard Dash**       | [http://localhost:5000](http://localhost:5000) |
+| **Spark Master UI**      | [http://localhost:8081](http://localhost:8081) |
+| **PostgreSQL**           | `localhost:5432` (DB: `transport_db`, User: `admin`, Pass: `password`) |
+| **Jenkins**              | [http://localhost:18080](http://localhost:18080) |
+| **Grafana**              | [http://localhost:3000](http://localhost:3000) <br> Login: `admin` / `admin` |
+
+---
+
+### 📄 5. Ver Logs dos Contêineres
+
+Logs de um serviço específico:
+
+```bash
+docker-compose logs -f <nome_do_servico>
+```
+
+Logs de todos os serviços:
+
+```bash
+docker-compose logs -f
+```
+
+---
+
+### 🛑 6. Parar os Serviços
+
+```bash
+docker-compose down
+```
+
+Remover volumes (apaga dados persistentes):
+
+```bash
+docker-compose down -v
+```
+
+---
+
+### 🧠 Estrutura do Pipeline de Dados
+
+1. `postgres` inicia.
+2. `data-generator` gera `transport_data.csv`.
+3. `r-processing` processa e gera `transport_dataL.csv`.
+4. Paralelamente:
+   - `data-warehouse` popula o PostgreSQL.
+   - `hadoop-simulations` roda simulações.
+   - `clustering-analysis` realiza clusterizações.
+5. `spark-submit-job` executa análises com Spark.
+6. `web-dashboard` exibe resultados.
+7. `jenkins` e `grafana` rodam como serviços independentes.
+
+---
+
