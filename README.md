@@ -19,9 +19,7 @@ Utilizando Python, R, Postgree e Docker, processaremos dados de GPS dos ônibus,
 ## Principais Funcionalidades
 
 ### Coleta de Dados:
-- Dados de GPS de ônibus (posição, velocidade, horário, rota).
-- Registros de embarque e desembarque (bilhetagem eletrônica).
-- Informações meteorológicas para cruzamento com padrões de transporte.
+- Dataset simulado
 
 ### Armazenamento e Processamento:
 - Utilização do Postgree para armazenar grandes volumes de dados não estruturados.
