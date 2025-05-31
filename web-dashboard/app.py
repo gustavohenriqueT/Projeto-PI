@@ -203,7 +203,7 @@ def update_all_graphs(selected_lines, db_status):
             fig = px.scatter(title=title_sem_dados).update_layout(**empty_fig_placeholder_layout)
             return (fig,) * 5 + ("Atualizado: " + datetime.now().strftime("%d/%m/%Y %H:%M:%S"), False, False, False)
 
-        df['horario_pico_desc'] = df['horario_pico_int'].apply(lambda x: 'Pico (não)' if x == 1 else 'Pico (sim))')
+        df['horario_pico_desc'] = df['horario_pico_int'].apply(lambda x: 'Pico (Sim)' if x == 1 else 'Pico (Não)')
         
         map_fig = px.scatter_mapbox(df, lat="avg_lat", lon="avg_lon", color="linha", size="avg_passengers", hover_name="linha", 
                                     hover_data={"avg_passengers": ":.2f", "total_trips": True, "horario_pico_desc": True, "avg_lat":False, "avg_lon":False},

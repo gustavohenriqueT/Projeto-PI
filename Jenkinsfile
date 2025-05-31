@@ -41,21 +41,20 @@ pipeline {
         stage('Aguardando Finalização dos Jobs') {
             steps {
                 echo 'Aguardando a conclusão dos jobs de dados e análise...'
-                // Adicione lógica de espera se necessário (ex: healthchecks ou polling)
+                
             }
         }
 
         stage('Implantar/Atualizar Web Dashboard') {
             steps {
                 echo 'Implantando/Atualizando o Web Dashboard...'
-                // Lógica de implantação do dashboard
+    
             }
         }
 
         stage('Verificar Status do Dashboard (Opcional)') {
             steps {
                 echo 'Verificando status do dashboard...'
-                // Lógica opcional de verificação
             }
         }
     }
