@@ -5,6 +5,7 @@ import nltk
 import matplotlib.pyplot as plt
 import seaborn as sns
 import os
+import json
 
 from nltk.corpus import stopwords
 from nltk.stem import RSLPStemmer
@@ -27,10 +28,9 @@ from sklearn.metrics import (
 nltk.data.path.append("/app/nltk_data")
 os.makedirs("/app/nltk_data", exist_ok=True)
 
-
 # --- Carregar dataset ---
 # O CSV processado pelo R está em /data/transport_dataL.csv
-csv_path = '/data/transport_dataL.csv'
+csv_path = os.path.join("..", "data", "transport_dataL.csv")
 if not os.path.exists(csv_path):
     print(f"Erro: O arquivo {csv_path} não foi encontrado. Verifique o processamento R.")
     exit(1)
@@ -41,11 +41,11 @@ df = pd.read_csv(csv_path)
 # Baixar os recursos do NLTK se não existirem
 try:
     nltk.data.find('corpora/stopwords')
-except nltk.downloader.DownloadError: # type: ignore
+except LookupError:
     nltk.download('stopwords', download_dir="/app/nltk_data")
 try:
     nltk.data.find('stemmers/rslp')
-except nltk.downloader.DownloadError: # type: ignore
+except LookupError:
     nltk.download('rslp', download_dir="/app/nltk_data")
 
 stop_words = set(stopwords.words('portuguese'))
@@ -82,16 +82,13 @@ df['rótulo'] = df['situacao'].astype(str) # 'Situacao' também se torna 'situac
 # Aplicar pré-processamento
 df['texto'] = df['texto'].apply(preprocess_text)
 
-
 # --- Dividir dados para classificação NLP ---
-
 x_train, x_test, y_train, y_test = train_test_split(
     df['texto'], df['rótulo'],
     test_size=0.2, random_state=42, stratify=df['rótulo']
 )
 
 # --- Pipeline NLP: TF-IDF + RandomForest ---
-
 pipeline_nlp = Pipeline([
     ('tfidf', TfidfVectorizer(ngram_range=(1, 2), max_df=1.0, min_df=1)),
     ('clf', RandomForestClassifier(n_estimators=100, random_state=42))
@@ -103,10 +100,11 @@ pipeline_nlp.fit(x_train, y_train)
 # Previsões e métricas
 y_pred = pipeline_nlp.predict(x_test)
 
-print("Acurácia NLP:", accuracy_score(y_test, y_pred))
+acuracia_nlp = accuracy_score(y_test, y_pred)
+print("Acurácia NLP:", acuracia_nlp)
 print("Relatório de Classificação NLP:\n", classification_report(y_test, y_pred, zero_division=1))
 
-# --- Gerar dados aleatórios embaralhando colunas (para simular novas entradas) ---
+# --- Gerar dados aleatórios embaralhando colunas (para simular novas entradas)---
 
 def embaralhar_coluna(col):
     return col.sample(frac=1).reset_index(drop=True)
@@ -171,5 +169,23 @@ pipeline_classif = Pipeline([
 pipeline_classif.fit(X_train, y_train)
 y_pred_classif = pipeline_classif.predict(X_test)
 
-print("Acurácia Classificação Estruturada:", accuracy_score(y_test, y_pred_classif))
+acuracia_estruturada_rf = accuracy_score(y_test, y_pred_classif)
+print("Acurácia Classificação Estruturada:", acuracia_estruturada_rf)
 print("Relatório Classificação Estruturada:\n", classification_report(y_test, y_pred_classif, zero_division=1))
+
+# --- Salvar métricas para dashboard (novo bloco) ---
+
+try:
+    metrics_nlp_dict = {
+        "acuracia_nlp": float(acuracia_nlp),
+        "acuracia_classificacao_estruturada_rf": float(acuracia_estruturada_rf),
+    }
+    json_path = os.path.join("..", "data", "ml_classification_metrics_nlp_rf.json")
+    with open(json_path, "w") as f:
+        json.dump(metrics_nlp_dict, f, indent=4)
+    print(f"Métricas de NLP & Classificação Estruturada salvas em {json_path}")
+except Exception as e:
+    import traceback
+    print(f"Erro ao salvar métricas para dashboard: {e}")
+    traceback.print_exc()
+

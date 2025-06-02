@@ -1,7 +1,7 @@
 from dash import Dash, dcc, html, Input, Output, no_update
 import plotly.express as px
 import pandas as pd
-from sqlalchemy import create_engine, text # Adicionado text
+from sqlalchemy import create_engine, text
 from datetime import datetime
 from time import sleep
 import warnings
@@ -9,10 +9,9 @@ import os
 import base64 
 import json 
 
-# Filter out pandas SQL warningsFyan
+# Filter out pandas SQL warnings
 warnings.filterwarnings("ignore", category=UserWarning)
 
-# Configurações do banco de dados
 DB_CONFIG = {
     "host": "postgres",
     "database": "transport_db",
@@ -28,7 +27,7 @@ def check_db_connection(max_retries=5, delay=5):
     for attempt in range(max_retries):
         try:
             with engine.connect() as conn:
-                conn.execute(text("SELECT 1")).scalar() # Usando text()
+                conn.execute(text("SELECT 1")).scalar()
             print("✅ Conexão com PostgreSQL estabelecida")
             return True
         except Exception as e:
@@ -53,7 +52,7 @@ app.layout = html.Div([
         'fontWeight': 'bold'
     }, children="Tentando conectar ao servidor e banco de dados..."),
 
-    html.Div([ # Este é o main-content
+    html.Div([
         html.H1("Análise de Transporte Público", style={'textAlign': 'center', 'color': '#2c3e50'}),
 
         dcc.Dropdown(
@@ -110,6 +109,7 @@ app.layout = html.Div([
 ])
 
 # --- Callbacks ---
+
 @app.callback(
     [Output('database-status', 'data'),
      Output('connection-status', 'children'), Output('connection-status', 'style'),
@@ -129,14 +129,13 @@ def check_database_connection(n):
     try:
         if check_db_connection(max_retries=1, delay=1):
             with engine.connect() as conn:
-                table_exists = conn.execute(text("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'transport_data')")).scalar() # Usando text()
+                table_exists = conn.execute(text("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'transport_data')")).scalar()
                 if not table_exists: raise Exception("Tabela 'transport_data' não encontrada!")
-                row_count = conn.execute(text("SELECT COUNT(*) FROM transport_data")).scalar() # Usando text()
+                row_count = conn.execute(text("SELECT COUNT(*) FROM transport_data")).scalar()
                 if row_count == 0:
                     status_msg = f"⚠️ Tabela 'transport_data' vazia. Aguardando dados... Tentativa {n + 1}/20"
                     status_style['color'] = '#f39c12'
                     return {'ready': False}, status_msg, status_style, True, True, timer_disabled, olap_hidden, ml_hidden
-                
                 status_msg = f"✅ Conectado. Tabela 'transport_data' com {row_count} registros."
                 status_style['color'] = '#2ecc71'
                 timer_disabled, olap_hidden, ml_hidden = True, False, False 
@@ -161,7 +160,7 @@ def check_database_connection(n):
 def update_dropdown_options(db_status):
     if not db_status or not db_status.get('ready'): return []
     try:
-        query = text("SELECT DISTINCT linha FROM transport_data ORDER BY linha") # Usando text()
+        query = text("SELECT DISTINCT linha FROM transport_data ORDER BY linha")
         df_lines = pd.read_sql(query, engine)
         return [{'label': str(l), 'value': str(l)} for l in df_lines['linha']] if not df_lines.empty else []
     except Exception as e:
@@ -208,24 +207,24 @@ def update_all_graphs(selected_lines, db_status):
         map_fig = px.scatter_mapbox(df, lat="avg_lat", lon="avg_lon", color="linha", size="avg_passengers", hover_name="linha", 
                                     hover_data={"avg_passengers": ":.2f", "total_trips": True, "horario_pico_desc": True, "avg_lat":False, "avg_lon":False},
                                     zoom=10, height=500, title="Localização Média e Volume de Passageiros"
-                                   ).update_layout(mapbox_style="open-street-map", margin={"r":0,"t":35,"l":0,"b":0}, showlegend=True, **fig_layout_defaults)  # type: ignore
+                                   ).update_layout(mapbox_style="open-street-map", margin={"r":0,"t":35,"l":0,"b":0}, showlegend=True, **fig_layout_defaults) # type: ignore #type
         
         pass_fig = px.bar(df, x="linha", y="avg_passengers", color="horario_pico_desc", title="Média de Passageiros", 
                           labels={"avg_passengers": "Média de Passageiros", "horario_pico_desc": "Pico?"}, barmode='group'
-                         ).update_layout(xaxis_tickangle=-45, legend_title_text='Horário Pico', **fig_layout_defaults) # type: ignore
+                         ).update_layout(xaxis_tickangle=-45, legend_title_text='Horário Pico', **fig_layout_defaults) # type: ignore #type
         
         df_pie = df.groupby("horario_pico_desc")["total_trips"].sum().reset_index()
         clu_fig = px.pie(df_pie, names="horario_pico_desc", values="total_trips", title="Viagens em Pico/Não Pico", 
                          hole=0.3, labels={'horario_pico_desc': 'Pico?'}
-                        ).update_traces(textposition='inside', textinfo='percent+label').update_layout(**fig_layout_defaults) # type: ignore
+                        ).update_traces(textposition='inside', textinfo='percent+label').update_layout(**fig_layout_defaults) # type: ignore #type
         
         trip_fig_ln = px.line(df, x="linha", y="total_trips", color="horario_pico_desc", markers=True, title="Total de Viagens por Linha", 
                               labels={"total_trips": "Nº Viagens", "horario_pico_desc": "Pico?"}
-                             ).update_layout(legend_title_text='Horário Pico', **fig_layout_defaults) # type: ignore
+                             ).update_layout(legend_title_text='Horário Pico', **fig_layout_defaults) # type: ignore #type
         
         trip_time_bar = px.bar(df, x="linha", y="avg_trip_time", color="horario_pico_desc", title="Tempo Médio de Viagem (min)", 
                                labels={"avg_trip_time": "Tempo Médio (min)", "horario_pico_desc": "Pico?"}, barmode='group'
-                              ).update_layout(xaxis_tickangle=-45, legend_title_text='Horário Pico', **fig_layout_defaults) # type: ignore
+                              ).update_layout(xaxis_tickangle=-45, legend_title_text='Horário Pico', **fig_layout_defaults) # type: ignore #type
          
         return map_fig, pass_fig, clu_fig, trip_fig_ln, trip_time_bar, "Atualizado: " + datetime.now().strftime("%d/%m/%Y %H:%M:%S"), False, False, False
     except Exception as e:
@@ -257,7 +256,7 @@ def update_olap_plot(dim1_key, dim2_key, db_status):
     query_olap_str = f"SELECT {', '.join(select_expr)}, {agg_func}({metric_agg}) AS metric_val FROM transport_data GROUP BY {', '.join(groupby_expr)} ORDER BY {', '.join(groupby_expr)}, metric_val DESC NULLS LAST"
     
     try:
-        df_res = pd.read_sql_query(text(query_olap_str), engine) # Usando text()
+        df_res = pd.read_sql_query(text(query_olap_str), engine)
         if df_res.empty: return px.scatter(title="Sem dados para esta combinação OLAP.").update_layout(**empty_fig_placeholder_layout)
         
         title_str = f'{agg_func.capitalize()} de {metric_agg.replace("_"," ")} por {dim1_label.replace("_"," ").capitalize()}'
@@ -269,11 +268,13 @@ def update_olap_plot(dim1_key, dim2_key, db_status):
             legend_title = dim2_label.replace("_"," ").capitalize() # type: ignore
         
         fig = px.bar(df_res, x='dim1', y='metric_val', color='dim2' if dim2_alias else None, barmode='group' if dim2_alias else 'relative', title=title_str, labels=labels)
-        fig.update_layout(xaxis_tickangle=-45, legend_title_text=legend_title, xaxis_title=dim1_label.replace("_"," ").capitalize(), **fig_layout_defaults) # Usando fig_layout_defaults # type: ignore
+        fig.update_layout(xaxis_tickangle=-45, legend_title_text=legend_title, xaxis_title=dim1_label.replace("_"," ").capitalize(), **fig_layout_defaults) # type: ignore
         return fig
     except Exception as e:
         print(f"Erro na consulta OLAP: {e}")
         return px.scatter(title="Ocorreu um erro ao gerar o gráfico OLAP.").update_layout(**empty_fig_placeholder_layout)
+
+# --- ATUALIZADO: Painel de Machine Learning agora lê e mostra acurácias NLP e Estruturado ---
 
 @app.callback(
     [Output('ml-metrics-display', 'children'), Output('feature-importance-img', 'src'),
@@ -288,34 +289,74 @@ def update_analysis_results(db_status):
     feature_img_path = "/app/shared_data/feature_importances.png"
     clustering_metrics_path = "/app/shared_data/clustering_metrics.json"
     pca_img_path = "/app/shared_data/hdbscan_clusters_pca.png"
-
+    ml_metrics_nlp_rf_path = "/app/shared_data/ml_classification_metrics_nlp_rf.json"
+     
     ml_metrics_children, feature_img_src = [], ""
     try:
         if os.path.exists(ml_metrics_path):
-            with open(ml_metrics_path, 'r') as f: metrics = json.load(f)
+            with open(ml_metrics_path, 'r') as f:
+                metrics = json.load(f)
             ml_metrics_children.append(html.H4("Métricas de Classificação:"))
-            ul_items = [html.Li(f"{k.replace('_',' ').capitalize()}: {v:.2%}" if isinstance(v, float) and 0<=v<=1 and v is not None else f"{k.replace('_',' ').capitalize()}: {str(v)}") for k,v in metrics.items()] # Adicionado str(v) e checagem de None
+            ul_items = [
+                html.Li(f"{k.replace('_',' ').capitalize()}: {v:.2%}"
+                        if isinstance(v, float) and 0<=v<=1 and v is not None
+                        else f"{k.replace('_',' ').capitalize()}: {str(v)}"
+                ) for k,v in metrics.items()
+            ]
             ml_metrics_children.append(html.Ul(ul_items))
-        else: ml_metrics_children.append(html.P("Métricas de classificação (ml_classification_metrics.json) não encontradas."))
+        else: 
+            ml_metrics_children.append(html.P("Métricas de classificação (ml_classification_metrics.json) não encontradas."))
     except Exception as e:
-        print(f"Erro ao carregar métricas de classificação: {e}"); ml_metrics_children.append(html.P(f"Erro ao carregar métricas de classificação: {str(e)}"))
+        print(f"Erro ao carregar métricas de classificação: {e}")
+        ml_metrics_children.append(html.P(f"Erro ao carregar métricas de classificação: {str(e)}"))
+
+    # Adição: Acurácia NLP e Estruturada Random Forest, vinda do Python
+    try:
+        if os.path.exists(ml_metrics_nlp_rf_path):
+            with open(ml_metrics_nlp_rf_path, 'r') as f:
+                metrics_nlp_rf = json.load(f)
+            ml_metrics_children.append(html.H4("Métricas Classificação Sklearn (RandomForest):"))
+            if "acuracia_nlp" in metrics_nlp_rf:
+                val = metrics_nlp_rf['acuracia_nlp']
+                ml_metrics_children.append(html.P(
+                    f"Acurácia NLP (Random Forest + TFIDF): {val:.2%}" if isinstance(val, float) else f"Acurácia NLP: {val}"
+                ))
+            if "acuracia_classificacao_estruturada_rf" in metrics_nlp_rf:
+                val = metrics_nlp_rf["acuracia_classificacao_estruturada_rf"]
+                ml_metrics_children.append(html.P(
+                    f"Acurácia Classificação Estruturada RF: {val:.2%}" if isinstance(val, float) else f"Acurácia Estruturada RF: {val}"
+                ))
+        else:
+            ml_metrics_children.append(html.P("Acurácia NLP/Estruturada RF não encontrada (ml_classification_metrics_nlp_rf.json)."))
+    except Exception as e:
+        print(f"Erro ao carregar métricas NLP/estruturada: {e}")
+        ml_metrics_children.append(html.P(f"Erro ao carregar métricas NLP/estruturada: {e}"))
 
     try:
         if os.path.exists(feature_img_path):
             encoded_image = base64.b64encode(open(feature_img_path, 'rb').read())
             feature_img_src = f'data:image/png;base64,{encoded_image.decode()}'
-    except Exception as e: print(f"Erro ao carregar imagem de importância das features: {e}")
+    except Exception as e:
+        print(f"Erro ao carregar imagem de importância das features: {e}")
 
     clustering_metrics_children, pca_img_src = [], ""
     try:
         if os.path.exists(clustering_metrics_path):
-            with open(clustering_metrics_path, 'r') as f: metrics = json.load(f)
+            with open(clustering_metrics_path, 'r') as f:
+                metrics = json.load(f)
             clustering_metrics_children.append(html.H4(f"Métricas de Clusterização ({metrics.get('algorithm','N/A')}):"))
-            ul_items = [html.Li(f"{k.replace('_',' ').capitalize()}: {str(v)}" if isinstance(v, str) else (f"{k.replace('_',' ').capitalize()}: {v:.4f}" if isinstance(v,float) else f"{k.replace('_',' ').capitalize()}: {str(v)}")) for k, v in metrics.items() if k != 'algorithm']
+            ul_items = [
+                html.Li(
+                    f"{k.replace('_',' ').capitalize()}: {str(v)}" if isinstance(v, str)
+                    else (f"{k.replace('_',' ').capitalize()}: {v:.4f}" if isinstance(v,float) else f"{k.replace('_',' ').capitalize()}: {str(v)}")
+                ) for k, v in metrics.items() if k != 'algorithm'
+            ]
             clustering_metrics_children.append(html.Ul(ul_items))
-        else: clustering_metrics_children.append(html.P("Métricas de clusterização (clustering_metrics.json) não encontradas."))
+        else:
+            clustering_metrics_children.append(html.P("Métricas de clusterização (clustering_metrics.json) não encontradas."))
     except Exception as e:
-        print(f"Erro ao carregar métricas de clusterização: {e}"); clustering_metrics_children.append(html.P(f"Erro ao carregar métricas de clusterização: {str(e)}"))
+        print(f"Erro ao carregar métricas de clusterização: {e}")
+        clustering_metrics_children.append(html.P(f"Erro ao carregar métricas de clusterização: {str(e)}"))
         
     try:
         if os.path.exists(pca_img_path):
@@ -328,6 +369,8 @@ def update_analysis_results(db_status):
         return default_msg_list, "", default_msg_list, "" 
 
     return ml_metrics_children, feature_img_src, clustering_metrics_children, pca_img_src
+
+# --- EXECUCAO ---
 
 if __name__ == '__main__':
     app.run_server(host='0.0.0.0', port=5000, debug=True)

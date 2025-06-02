@@ -1,0 +1,9 @@
+{
+    "algorithm": "HDBSCAN",
+    "min_cluster_size_param": 100,
+    "min_samples_param": 10,
+    "num_clusters_found": 2,
+    "num_outliers": 18684,
+    "silhouette_score": 0.04203351903832988,
+    "davies_bouldin_score": 2.6035078602697244
+}

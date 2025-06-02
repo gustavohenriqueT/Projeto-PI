@@ -74,7 +74,7 @@ services:
       context: ./spark-processing # Especifica o caminho do Dockerfile
     volumes:
       - ./data:/data # Mapeia o diretório de dados
-    command: python clustering_analysis.py # Comando a ser executado
+    command: sh -c "python clustering.py && python clustering_analysis.py" # Comando a ser executado
     depends_on:
       r-processing:
         condition: service_completed_successfully # Espera o r-processing completar
