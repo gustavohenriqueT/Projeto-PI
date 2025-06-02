@@ -370,7 +370,6 @@ def update_analysis_results(db_status):
 
     return ml_metrics_children, feature_img_src, clustering_metrics_children, pca_img_src
 
-# --- EXECUCAO ---
 
 if __name__ == '__main__':
     app.run_server(host='0.0.0.0', port=5000, debug=True)
