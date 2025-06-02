@@ -1,6 +1,0 @@
-{
-    "acuracia_treino_completo_desbalanceado": 0.73295,
-    "acuracia_teste_balanceado_ou_split": 0.5038240917782026,
-    "auc_teste_balanceado_ou_split": 0.4817056836311606,
-    "acuracia_modelo_carregado_no_teste": 0.5038240917782026
-}
