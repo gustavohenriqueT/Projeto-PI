@@ -15,7 +15,7 @@ pacman::p_load(
 # 2. Configuração de Caminhos -------------------------------------------------
 caminho_entrada <- "/app/data/transport_data.csv"
 caminho_saida <- "/app/data/transport_dataL.csv"
-caminho_graficos <- "/app/data/graficos_analise.png"
+caminho_graficos <- "/app/web-dashboard/assets/graficos.png"
 
 # 3. Leitura dos Dados --------------------------------------------------------
 cat("\n[1/7] Lendo arquivo de dados...\n")

@@ -44,6 +44,7 @@ services:
     build: ./r-processing # Especifica o caminho do Dockerfile
     volumes:
       - ./data:/app/data # Mapeia o diretório de dados
+      - ./web-dashboard/assets:/app/web-dashboard/assets # Mapeia o diretório de assets
     depends_on:
       data-generator:
         condition: service_completed_successfully # Espera o data-generator completar

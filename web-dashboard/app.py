@@ -75,10 +75,42 @@ app.layout = html.Div([
             style={'width': '80%', 'margin': '20px auto', 'marginBottom': '30px'},
             disabled=True
         ),
+    html.Div([
+        html.H2("Boxplots com Outliers", style={'textAlign': 'center', 'marginTop': '30px'}),
+        html.Img(
+            src="/assets/boxplot_outliers.png",
+            style={
+                'display': 'block',
+                'margin': 'auto',
+                'maxWidth': '80%',
+                'maxHeight': '400px',
+                'border': '1px solid #aaa',
+                'borderRadius': '6px',
+                'backgroundColor': '#f9f9f9',
+                'padding': '8px'
+            }
+        )
+        
+    ], style={'margin': '30px 0 20px 0'}),
+        html.Div([
+            html.H2("Gráficos Após Tratamento", style={'textAlign': 'center', 'marginTop': '30px'}),
+            html.Img(
+                src="/assets/graficos.png",
+                style={
+                    'display': 'block',
+                    'margin': 'auto',
+                    'maxWidth': '100%',
+                    'maxHeight': '450px',
+                    'border': '1px solid #aaa',
+                    'borderRadius': '6px',
+                    'backgroundColor': '#f9f9f9',
+                    'padding': '8px'
+                }
+            )
+        ], style={'margin': '30px 0 20px 0'}),
 
         html.Div([
-            dcc.Loading(children=dcc.Graph(id='map-plot'), id="loading-map"),
-            dcc.Loading(children=dcc.Graph(id='passengers-plot'), id="loading-passengers")
+        dcc.Loading(children=dcc.Graph(id='passengers-plot'), id="loading-passengers")
         ], style={'display': 'flex', 'flex-wrap': 'wrap', 'justify-content': 'space-around', 'margin': '10px'}, id='graphs-row-1', hidden=True),
 
         html.Div([
@@ -180,7 +212,7 @@ def update_dropdown_options(db_status):
         print(f"Erro ao carregar linhas para dropdown: {e}"); return []
 
 @app.callback(
-    [Output('map-plot', 'figure'), Output('passengers-plot', 'figure'),
+    [Output('passengers-plot', 'figure'),
      Output('cluster-plot', 'figure'), Output('trips-plot', 'figure'),
      Output('trip-time-plot', 'figure'), Output('last-update', 'children'),
      Output('graphs-row-1', 'hidden'), Output('graphs-row-2', 'hidden'), Output('graphs-row-3', 'hidden')],
@@ -217,10 +249,10 @@ def update_all_graphs(selected_lines, db_status):
 
         df['horario_pico_desc'] = df['horario_pico_int'].apply(lambda x: 'Pico (Sim)' if x == 1 else 'Pico (Não)')
         
-        map_fig = px.scatter_mapbox(df, lat="avg_lat", lon="avg_lon", color="linha", size="avg_passengers", hover_name="linha", 
-                                    hover_data={"avg_passengers": ":.2f", "total_trips": True, "horario_pico_desc": True, "avg_lat":False, "avg_lon":False},
-                                    zoom=10, height=500, title="Localização Média e Volume de Passageiros"
-                                   ).update_layout(mapbox_style="open-street-map", margin={"r":0,"t":35,"l":0,"b":0}, showlegend=True, **fig_layout_defaults) # type: ignore #type
+        #map_fig = px.scatter_mapbox(df, lat="avg_lat", lon="avg_lon", color="linha", size="avg_passengers", hover_name="linha", 
+           #                         hover_data={"avg_passengers": ":.2f", "total_trips": True, "horario_pico_desc": True, "avg_lat":False, "avg_lon":False},
+               #                     zoom=10, height=500, title="Localização Média e Volume de Passageiros"
+                  #                 ).update_layout(mapbox_style="open-street-map", margin={"r":0,"t":35,"l":0,"b":0}, showlegend=True, **fig_layout_defaults) # type: ignore #type
         
         pass_fig = px.bar(df, x="linha", y="avg_passengers", color="horario_pico_desc", title="Média de Passageiros", 
                           labels={"avg_passengers": "Média de Passageiros", "horario_pico_desc": "Pico?"}, barmode='group'
@@ -239,7 +271,7 @@ def update_all_graphs(selected_lines, db_status):
                                labels={"avg_trip_time": "Tempo Médio (min)", "horario_pico_desc": "Pico?"}, barmode='group'
                               ).update_layout(xaxis_tickangle=-45, legend_title_text='Horário Pico', **fig_layout_defaults) # type: ignore #type
          
-        return map_fig, pass_fig, clu_fig, trip_fig_ln, trip_time_bar, "Atualizado: " + datetime.now().strftime("%d/%m/%Y %H:%M:%S"), False, False, False
+        return pass_fig, clu_fig, trip_fig_ln, trip_time_bar, "Atualizado: " + datetime.now().strftime("%d/%m/%Y %H:%M:%S"), False, False, False
     except Exception as e:
         print(f"Erro ao gerar gráficos principais: {e}")
         fig = px.scatter(title=title_erro_graficos).update_layout(**empty_fig_placeholder_layout)
