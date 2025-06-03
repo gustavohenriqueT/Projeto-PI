@@ -287,7 +287,6 @@ def update_olap_plot(dim1_key, dim2_key, db_status):
         print(f"Erro na consulta OLAP: {e}")
         return px.scatter(title="Ocorreu um erro ao gerar o gráfico OLAP.").update_layout(**empty_fig_placeholder_layout)
 
-# --- ATUALIZADO: Painel de Machine Learning agora lê e mostra acurácias NLP e Estruturado ---
 
 @app.callback(
     [Output('ml-metrics-display', 'children'), Output('feature-importance-img', 'src'),
