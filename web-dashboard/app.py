@@ -41,6 +41,19 @@ server = app.server
 # Layout do dashboard
 app.layout = html.Div([
     html.Div(id='hidden-div', style={'display': 'none'}),
+        html.A("Abrir Dashboard do Grafana",
+           href="http://localhost:3000/goto/vZQb-9fHR?orgId=1",
+           target="_blank",
+           style={
+               'display': 'inline-block',
+               'padding': '10px 20px',
+               'backgroundColor': '#3080d0',
+               'opacity': '0.8',
+               'color': 'white',
+               'border': 'none',
+               'borderRadius': '5px',
+               'textDecoration': 'none'
+           }),
     dcc.Store(id='database-status', data={'ready': False}),
     dcc.Interval(id='init-timer', interval=3000, n_intervals=0, max_intervals=20, disabled=False),
 
