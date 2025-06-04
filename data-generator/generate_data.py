@@ -31,7 +31,7 @@ def gerar_dados_sinteticos(num_registros): #
         "linha": [random.choice(LINHAS_TRANSPORTE) for _ in range(num_registros)], #
         "latitude": [], #
         "longitude": [], #
-        "numero_passageiros": [random.randint(0, 40) for _ in range(num_registros)], #
+        "numero_passageiros": [random.randint(-15, 40) for _ in range(num_registros)], #
         "tempo_viagem_minutos": [random.randint(10, 90) for _ in range(num_registros)], #
     }
     
