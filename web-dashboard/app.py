@@ -75,21 +75,7 @@ app.layout = html.Div([
             style={'width': '80%', 'margin': '20px auto', 'marginBottom': '30px'},
             disabled=True
         ),
-    html.Div([
-        html.H2("Boxplots com Outliers", style={'textAlign': 'center', 'marginTop': '30px'}),
-        html.Img(
-            src="/assets/boxplot_outliers.png",
-            style={
-                'display': 'block',
-                'margin': 'auto',
-                'maxWidth': '80%',
-                'maxHeight': '400px',
-                'border': '1px solid #aaa',
-                'borderRadius': '6px',
-                'backgroundColor': '#f9f9f9',
-                'padding': '8px'
-            }
-        )
+
         
     ], style={'margin': '30px 0 20px 0'}),
         html.Div([
