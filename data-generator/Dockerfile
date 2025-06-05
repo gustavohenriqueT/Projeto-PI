@@ -2,9 +2,9 @@ FROM python:3.9-slim
 
 WORKDIR /app
 
-# Instala dependências do sistema para psycopg2
+# Instala dependências do sistema para pandas e psycopg2
 RUN apt-get update && \
-    apt-get install -y gcc python3-dev libpq-dev && \
+    apt-get install -y gcc g++ python3-dev libpq-dev && \
     rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
